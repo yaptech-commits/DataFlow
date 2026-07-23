@@ -5,13 +5,19 @@ services:
     plan: free
     buildCommand: npm install
     startCommand: npm start
-    disk:
-      name: dataflow-data
-      mountPath: /data
-      sizeGB: 1
+    # NOTE (testing phase): persistent disk removed because Render's free tier
+    # does not support disks. The SQLite DB is therefore EPHEMERAL — wiped on
+    # every deploy/restart. BEFORE GOING LIVE: upgrade to the Starter plan,
+    # restore the disk block below, and set DATABASE_PATH back to /data/dataflow.db
+    #
+    # plan: starter
+    # disk:
+    #   name: dataflow-data
+    #   mountPath: /data
+    #   sizeGB: 1
     envVars:
       - key: DATABASE_PATH
-        value: /data/dataflow.db
+        value: ./dataflow.db
       - key: PAYSTACK_SECRET_KEY
         sync: false
       - key: ICEKASH_API_KEY
