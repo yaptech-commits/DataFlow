@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: dataflow-backend
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    disk:
+      name: dataflow-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: DATABASE_PATH
+        value: /data/dataflow.db
+      - key: PAYSTACK_SECRET_KEY
+        sync: false
+      - key: ICEKASH_API_KEY
+        sync: false
+      - key: ALLOWED_ORIGIN
+        sync: false
+      - key: PLATFORM_MARKUP_PERCENT
+        value: "10"
+      - key: DEFAULT_AGENT_MARKUP_PERCENT
+        value: "15"
