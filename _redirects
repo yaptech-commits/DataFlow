@@ -1,0 +1,3 @@
+/api/*  https://dataflow-backend-obbt.onrender.com/api/:splat  200
+/admin  https://dataflow-backend-obbt.onrender.com/admin  200
+/*      /index.html  200
