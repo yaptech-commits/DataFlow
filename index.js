@@ -654,7 +654,7 @@ app.post('/api/purchase/:reference/otp', purchaseLimiter, async (req, res) => {
     // If OTP was accepted, Paystack will send a charge.success webhook
     // For now, just tell the frontend to keep polling
     if (status === 'success') {
-      db.setPurchaseStatus(reference, 'pending_delivery');
+      db.setPurchaseStatus(reference, 'pending');
       return res.json({
         reference,
         status: 'otp_accepted',
