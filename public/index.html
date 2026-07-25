@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<title>DataFlow — Buy MTN, Telecel, AirtelTigo Data Instantly</title>
+<style>
+    /* Adding basic styles to ensure the page looks okay */
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; }
+    .container { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    h1 { color: #2d3748; }
+    .btn { display: inline-block; background: #38a169; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-top: 10px; }
+    .form-group { margin-bottom: 15px; }
+    label { display: block; margin-bottom: 5px; }
+    input, select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+</style>
+</head>
+<body>
+<div class="container">
+    <h1>DataFlow</h1>
+    <p>Buy MTN, Telecel, AirtelTigo Data Instantly.</p>
+    
+    <div id="purchaseForm">
+        <div class="form-group">
+            <label for="network">Network</label>
+            <select id="network">
+                <option value="MTN">MTN</option>
+                <option value="Telecel">Telecel</option>
+                <option value="AirtelTigo">AirtelTigo</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="phone">Phone Number</label>
+            <input type="tel" id="phone" placeholder="0500000000">
+        </div>
+        <div class="form-group">
+            <label for="plan">Data Plan</label>
+            <select id="plan">
+                <option value="1GB">1GB - GHS 5.00</option>
+                <option value="2GB">2GB - GHS 10.00</option>
+                <option value="5GB">5GB - GHS 25.00</option>
+            </select>
+        </div>
+        <button class="btn" onclick="buyData()">Buy Now</button>
+    </div>
+
+    <hr>
+    <p><a href="/admin">Admin Login</a></p>
+</div>
+
+<script>
+    async function buyData() {
+        const network = document.getElementById('network').value;
+        const phone = document.getElementById('phone').value;
+        const plan = document.getElementById('plan').value;
+        
+        alert(`Initiating purchase for ${plan} on ${network} for ${phone}...`);
+        
+        try {
+            const response = await fetch('/api/purchase', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ network, phone, plan })
+            });
+            const data = await response.json();
+            if (data.success) {
+                window.location.href = data.authorization_url;
+            } else {
+                alert('Error: ' + data.message);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Could not reach the server.');
+        }
+    }
+</script>
+</body>
+</html>

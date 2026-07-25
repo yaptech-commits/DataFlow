@@ -15,6 +15,7 @@ app.set('trust proxy', 1); // needed for correct rate-limit/IP handling behind R
 // before the normal JSON parser runs.
 app.use('/api/webhook/paystack', express.raw({ type: 'application/json' }));
 app.use(express.json());
+app.use(express.static('public'));
 
 const allowedOrigin = process.env.ALLOWED_ORIGIN || '*';
 app.use(cors({ origin: allowedOrigin }));
