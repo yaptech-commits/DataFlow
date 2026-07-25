@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DataFlow Admin Dashboard</title>
+  <link rel="stylesheet" href="/admin_v2.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg-color: #f8f8fb;
+      --card-bg: #ffffff;
+      --text-color: #333;
+      --text-dim: #666;
+      --primary-color: #6c63ff;
+      --green: #28a745;
+      --red: #dc3545;
+      --blue: #007bff;
+      --gradient-pink: linear-gradient(to right, #ff7e5f, #feb47b);
+      --gradient-blue: linear-gradient(to right, #4facfe, #00f2fe);
+      --gradient-green: linear-gradient(to right, #2ed573, #7bed9f);
+      --border-color: #eee;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 20px auto;
+      padding: 0 20px;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .header h1 {
+      margin: 0;
+      color: var(--primary-color);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .stat-card {
+      background: var(--card-bg);
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+      color: white;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-card.pink {
+      background: var(--gradient-pink);
+    }
+
+    .stat-card.blue {
+      background: var(--gradient-blue);
+    }
+
+    .stat-card.green {
+      background: var(--gradient-green);
+    }
+
+    .stat-card h3 {
+      margin-top: 0;
+      font-size: 1.1em;
+      opacity: 0.8;
+    }
+
+    .stat-card .value {
+      font-size: 2.2em;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+
+    .stat-card .change {
+      font-size: 0.9em;
+      opacity: 0.9;
+    }
+
+    .chart-section {
+      background: var(--card-bg);
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+      margin-bottom: 30px;
+    }
+
+    .chart-section h2 {
+      margin-top: 0;
+      color: var(--text-color);
+      font-size: 1.4em;
+      margin-bottom: 20px;
+    }
+
+    .table-section {
+      background: var(--card-bg);
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    }
+
+    .table-section h2 {
+      margin-top: 0;
+      color: var(--text-color);
+      font-size: 1.4em;
+      margin-bottom: 20px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+
+    th, td {
+      padding: 12px 15px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    th {
+      background-color: var(--bg-color);
+      font-weight: bold;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      font-size: 0.85em;
+    }
+
+    .pill {
+      display: inline-block;
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 0.8em;
+      font-weight: bold;
+      text-transform: capitalize;
+    }
+
+    .pill.delivered {
+      background-color: var(--green);
+      color: white;
+    }
+
+    .pill.pending {
+      background-color: var(--blue);
+      color: white;
+    }
+
+    .pill.failed {
+      background-color: var(--red);
+      color: white;
+    }
+
+    .mono {
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+    }
+
+    .login-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background-color: var(--bg-color);
+    }
+
+    .login-box {
+      background: var(--card-bg);
+      padding: 40px;
+      border-radius: 10px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      text-align: center;
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .login-box h1 {
+      color: var(--primary-color);
+      margin-bottom: 30px;
+    }
+
+    .login-box input[type="password"] {
+      width: calc(100% - 20px);
+      padding: 10px;
+      margin-bottom: 20px;
+      border: 1px solid var(--border-color);
+      border-radius: 5px;
+      font-size: 1em;
+    }
+
+    .login-box button {
+      background-color: var(--primary-color);
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 1em;
+      transition: background-color 0.3s ease;
+    }
+
+    .login-box button:hover {
+      background-color: #5a52d6;
+    }
+
+    .login-box .status {
+      margin-top: 15px;
+      font-size: 0.9em;
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="loginScreen" class="login-container">
+    <div class="login-box">
+      <h1>DataFlow Admin</h1>
+      <p class="status" id="loginStatus"></p>
+      <input type="password" id="adminPassword" placeholder="Admin Password">
+      <button id="loginBtn">Login</button>
+    </div>
+  </div>
+
+  <div id="dashboardScreen" class="container hidden">
+    <div class="header">
+      <h1>Dashboard</h1>
+      <div>
+        <button id="refreshBtn">Refresh</button>
+        <button id="logoutBtn">Logout</button>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card pink">
+        <h3>Weekly Sales</h3>
+        <div class="value" id="statRevenue">GH₵ 0.00</div>
+        <div class="change">Increased by 60%</div>
+      </div>
+      <div class="stat-card blue">
+        <h3>Weekly Orders</h3>
+        <div class="value" id="statCount">0</div>
+        <div class="change">Decreased by 10%</div>
+      </div>
+      <div class="stat-card green">
+        <h3>Visitors Online</h3>
+        <div class="value">95,574</div>
+        <div class="change">Increased by 5%</div>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <h3>Platform Profit</h3>
+        <div class="value" id="statProfit">GH₵ 0.00</div>
+        <div class="change"></div>
+      </div>
+      <div class="stat-card">
+        <h3>Total Cost</h3>
+        <div class="value" id="statCost">GH₵ 0.00</div>
+        <div class="change"></div>
+      </div>
+      <div class="stat-card">
+        <h3>Agent Payouts</h3>
+        <div class="value" id="statAgentPayout">GH₵ 0.00</div>
+        <div class="change"></div>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="chart-section">
+        <h2>Visit And Sales Statistics</h2>
+        <canvas id="salesChart"></canvas>
+      </div>
+      <div class="chart-section">
+        <h2>Traffic Sources</h2>
+        <canvas id="trafficChart"></canvas>
+      </div>
+    </div>
+
+    <div class="table-section" style="margin-bottom: 30px;">
+      <h2>Recent Purchases</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Reference</th>
+            <th>Network</th>
+            <th>Capacity</th>
+            <th>Amount</th>
+            <th>Agent Ref</th>
+            <th>Status</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody id="purchasesBody">
+          <tr><td colspan="7" style="text-align:center; padding:20px;">No recent purchases.</td></tr>
+        </tbody>
+      </table>
+      <p id="purchasesEmpty" style="text-align:center; padding:20px;" class="hidden">No recent purchases.</p>
+    </div>
+
+    <div class="table-section" style="margin-bottom: 30px;">
+      <h2>Agent Management</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Name</th>
+            <th>Network</th>
+            <th>Markup</th>
+            <th>Balance</th>
+            <th>Sales</th>
+            <th>Joined</th>
+          </tr>
+        </thead>
+        <tbody id="agentsBody">
+          <tr><td colspan="7" style="text-align:center; padding:20px;">No agents registered.</td></tr>
+        </tbody>
+      </table>
+      <p id="agentsEmpty" style="text-align:center; padding:20px;" class="hidden">No agents registered.</p>
+    </div>
+
+    <div class="table-section">
+      <h2>Platform Settings</h2>
+      <div style="padding: 15px 0;">
+        <label for="platformMarkupInput">Platform Markup (%):</label>
+        <input type="number" id="platformMarkupInput" style="width: 80px; padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); margin-left: 10px;">
+      </div>
+      <div style="padding: 15px 0;">
+        <label for="defaultAgentMarkupInput">Default Agent Markup (%):</label>
+        <input type="number" id="defaultAgentMarkupInput" style="width: 80px; padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); margin-left: 10px;">
+      </div>
+      <button id="saveSettingsBtn" style="background-color: var(--blue); color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin-top: 15px;">Save Settings</button>
+      <p id="settingsStatus" class="status" style="margin-top: 15px;"></p>
+    </div>
+
+  </div>
+
+  <script>
+    const API_BASE = window.location.origin.includes("netlify") ? window.location.origin + "/.netlify/functions/server" : "https://dataflow-backend-obbt.onrender.com";
+    const adminPasswordInput = document.getElementById("adminPassword");
+    const loginBtn = document.getElementById("loginBtn");
+    const loginStatus = document.getElementById("loginStatus");
+    const loginScreen = document.getElementById("loginScreen");
+    const dashboardScreen = document.getElementById("dashboardScreen");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const refreshBtn = document.getElementById("refreshBtn");
+
+    let adminToken = sessionStorage.getItem("adminToken");
+
+    function money(amount) {
+      return parseFloat(amount).toFixed(2);
+    }
+
+    function esc(str) {
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/\'/g, '&#039;');
+    }
+
+    async function adminFetch(path, options = {}) {
+      if (!adminToken) {
+        showLogin();
+        throw new Error("No admin token");
+      }
+      options.headers = {
+        ...options.headers,
+        Authorization: `Bearer ${adminToken}`,
+      };
+      const res = await fetch(`${API_BASE}${path}`, options);
+      if (res.status === 401) {
+        showLogin();
+        throw new Error("Unauthorized");
+      }
+      return res;
+    }
+
+    function showLogin() {
+      dashboardScreen.classList.add("hidden");
+      loginScreen.classList.remove("hidden");
+      sessionStorage.removeItem("adminToken");
+      adminToken = null;
+      loginStatus.textContent = "";
+      adminPasswordInput.value = "";
+      adminPasswordInput.focus();
+    }
+
+    function showDashboard() {
+      loginScreen.classList.add("hidden");
+      dashboardScreen.classList.remove("hidden");
+      loadEverything();
+    }
+
+    loginBtn.addEventListener("click", async () => {
+      loginBtn.disabled = true;
+      loginStatus.textContent = "Logging in...";
+      loginStatus.style.color = "var(--text-dim)";
+      try {
+        const res = await fetch(`${API_BASE}/api/admin/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ password: adminPasswordInput.value }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          loginStatus.textContent = data.error || "Login failed.";
+          loginStatus.style.color = "var(--red)";
+          return;
+        }
+        adminToken = data.token;
+        sessionStorage.setItem("adminToken", adminToken);
+        showDashboard();
+      } catch (err) {
+        loginStatus.textContent = "Could not reach server. Backend may be waking up.";
+        loginStatus.style.color = "var(--red)";
+      } finally {
+        loginBtn.disabled = false;
+      }
+    });
+
+    adminPasswordInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") loginBtn.click();
+    });
+
+    logoutBtn.addEventListener("click", showLogin);
+    refreshBtn.addEventListener("click", () => loadEverything());
+
+    async function loadEverything() {
+      await Promise.all([loadStats(), loadSettings(), loadAgents(), loadPurchases()]);
+      initCharts(); // Initialize charts after data is loaded
+    }
+
+    async function loadStats() {
+      try {
+        const res = await adminFetch("/api/admin/stats");
+        const data = await res.json();
+        document.getElementById("statRevenue").textContent = `GH₵ ${money(data.totalRevenue)}`;
+        document.getElementById("statCost").textContent = `GH₵ ${money(data.totalCost)}`;
+        document.getElementById("statAgentPayout").textContent = `GH₵ ${money(data.totalAgentPayout)}`;
+        document.getElementById("statProfit").textContent = `GH₵ ${money(data.platformProfit)}`;
+        document.getElementById("statCount").textContent = data.totalPurchases ?? 0;
+      } catch (err) { /* handled by adminFetch redirecting to login */ }
+    }
+
+    async function loadSettings() {
+      try {
+        const res = await adminFetch("/api/admin/settings");
+        const data = await res.json();
+        document.getElementById("platformMarkupInput").value = data.platformMarkupPercent;
+        document.getElementById("defaultAgentMarkupInput").value = data.defaultAgentMarkupPercent;
+      } catch (err) { }
+    }
+
+    document.getElementById("saveSettingsBtn").addEventListener("click", async () => {
+      const btn = document.getElementById("saveSettingsBtn");
+      const statusEl = document.getElementById("settingsStatus");
+      const platformMarkupPercent = document.getElementById("platformMarkupInput").value;
+      const defaultAgentMarkupPercent = document.getElementById("defaultAgentMarkupInput").value;
+      btn.disabled = true;
+      statusEl.textContent = "Saving...";
+      statusEl.style.color = "var(--text-dim)";
+      try {
+        const res = await adminFetch("/api/admin/settings", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ platformMarkupPercent, defaultAgentMarkupPercent }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          statusEl.textContent = data.error || "Could not save.";
+          statusEl.style.color = "var(--red)";
+          return;
+        }
+        statusEl.textContent = `✓ Saved — platform markup ${data.platformMarkupPercent}%, new agent default ${data.defaultAgentMarkupPercent}%.`;
+        statusEl.style.color = "var(--green)";
+      } catch (err) {
+        statusEl.textContent = "Could not reach the server.";
+        statusEl.style.color = "var(--red)";
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    async function loadAgents() {
+      try {
+        const res = await adminFetch("/api/admin/agents");
+        const data = await res.json();
+        const body = document.getElementById("agentsBody");
+        const empty = document.getElementById("agentsEmpty");
+        const agents = data.agents || [];
+        if (!agents.length) {
+          body.innerHTML = 
+            `<tr><td colspan="7" style="text-align:center; padding:20px;">No agents registered.</td></tr>`;
+          empty.classList.remove("hidden");
+          return;
+        }
+        empty.classList.add("hidden");
+        body.innerHTML = agents.map(a => `
+          <tr>
+            <td class="mono">${esc(a.referralCode)}</td>
+            <td>${esc(a.name)}</td>
+            <td>${esc(a.network)}</td>
+            <td class="mono">${esc(a.markupPercent)}%</td>
+            <td class="mono">GH₵ ${money(a.walletBalance)}</td>
+            <td>${a.totalSales ?? 0}</td>
+            <td>${a.createdAt ? new Date(a.createdAt).toLocaleDateString() : "—"}</td>
+          </tr>
+        `).join("");
+      } catch (err) { }
+    }
+
+    async function loadPurchases() {
+      try {
+        const res = await adminFetch("/api/admin/purchases?limit=50");
+        const data = await res.json();
+        const body = document.getElementById("purchasesBody");
+        const empty = document.getElementById("purchasesEmpty");
+        const purchases = data.purchases || [];
+        if (!purchases.length) {
+          body.innerHTML = 
+            `<tr><td colspan="7" style="text-align:center; padding:20px;">No recent purchases.</td></tr>`;
+          empty.classList.remove("hidden");
+          return;
+        }
+        empty.classList.add("hidden");
+        body.innerHTML = purchases.map(p => `
+          <tr>
+            <td class="mono">${esc(String(p.reference || "").slice(0, 14))}…</td>
+            <td>${esc(p.network)}</td>
+            <td>${esc(p.capacity)}</td>
+            <td class="mono">GH₵ ${money(p.amount)}</td>
+            <td>${p.ref ? `<span class="mono">${esc(p.ref)}</span>` : `<span style="color:var(--text-dim);">direct</span>`}</td>
+            <td><span class="pill ${esc(p.status)}">${esc(String(p.status || "").replace(/_/g, " "))}</span></td>
+            <td>${p.createdAt ? new Date(p.createdAt).toLocaleString() : "—"}</td>
+          </tr>
+        `).join("");
+      } catch (err) { }
+    }
+
+    let salesChartInstance = null;
+    let trafficChartInstance = null;
+
+    function initCharts() {
+      // Dummy data for charts for now, as backend doesn't provide granular data
+      const salesData = {
+        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'],
+        datasets: [
+          { label: 'Sales', data: [65, 59, 80, 81, 56, 55, 40, 70], backgroundColor: 'rgba(108, 99, 255, 0.6)' },
+          { label: 'Visits', data: [28, 48, 40, 19, 86, 27, 90, 60], backgroundColor: 'rgba(46, 213, 115, 0.6)' }
+        ]
+      };
+
+      const trafficData = {
+        labels: ['Search Engines', 'Direct Click', 'Bookmarks Click'],
+        datasets: [
+          { data: [30, 30, 40], backgroundColor: ['#ff7e5f', '#4facfe', '#2ed573'] }
+        ]
+      };
+
+      if (salesChartInstance) salesChartInstance.destroy();
+      salesChartInstance = new Chart(document.getElementById('salesChart'), {
+        type: 'bar',
+        data: salesData,
+        options: {
+          responsive: true,
+          plugins: { legend: { position: 'top' } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+
+      if (trafficChartInstance) trafficChartInstance.destroy();
+      trafficChartInstance = new Chart(document.getElementById('trafficChart'), {
+        type: 'doughnut',
+        data: trafficData,
+        options: {
+          responsive: true,
+          plugins: { legend: { position: 'top' } }
+        }
+      });
+    }
+
+    // Auto-resume the session if a token is still present after a refresh.
+    if (adminToken) showDashboard();
+  </script>
+</body>
+</html>
