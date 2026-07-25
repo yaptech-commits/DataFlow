@@ -583,6 +583,16 @@ app.post('/api/purchase', purchaseLimiter, async (req, res) => {
       ref: agent ? agent.referralCode : null,
     });
 
+    // If Paystack requires OTP, tell the frontend to show an OTP input
+    if (status === 'send_otp' || status === 'otp') {
+      return res.json({
+        reference,
+        amount: amountCedis,
+        status: 'otp_required',
+        instructions: 'Enter the OTP code sent to your phone.',
+      });
+    }
+
     // Paystack Mobile Money charges usually require the customer to approve a
     // prompt on their phone (send_otp / pay_offline), so we tell the frontend
     // to keep polling instead of assuming success immediately.
@@ -605,6 +615,72 @@ app.get('/api/purchase/:reference', async (req, res) => {
   const record = db.getPurchase(req.params.reference);
   if (!record) return res.status(404).json({ error: 'Unknown reference' });
   res.json(record);
+});
+
+/**
+ * Step 2b: Frontend submits the OTP code that Paystack sent to the customer's phone.
+ * Paystack then validates the code and completes the charge.
+ */
+app.post('/api/purchase/:reference/otp', purchaseLimiter, async (req, res) => {
+  const { otp } = req.body;
+  const reference = req.params.reference;
+
+  if (!otp || otp.trim().length === 0) {
+    return res.status(400).json({ error: 'Enter the OTP code.' });
+  }
+
+  const record = db.getPurchase(reference);
+  if (!record) {
+    return res.status(404).json({ error: 'Purchase not found.' });
+  }
+
+  try {
+    // Submit the OTP to Paystack to complete the charge
+    const otpResponse = await axios.post(
+      `${PAYSTACK_BASE}/charge/submit_otp`,
+      {
+        reference,
+        otp: otp.trim(),
+      },
+      { headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` } }
+    );
+
+    const { status } = otpResponse.data.data;
+
+    // Store the OTP code for debugging/audit
+    db.setPurchaseOtpCode(reference, otp.trim());
+
+    // If OTP was accepted, Paystack will send a charge.success webhook
+    // For now, just tell the frontend to keep polling
+    if (status === 'success') {
+      db.setPurchaseStatus(reference, 'pending_delivery');
+      return res.json({
+        reference,
+        status: 'otp_accepted',
+        instructions: 'OTP accepted — processing your payment...',
+      });
+    }
+
+    // If still pending, tell frontend to keep polling
+    res.json({
+      reference,
+      status: 'pending',
+      instructions: 'Verifying OTP...',
+    });
+  } catch (err) {
+    console.error('OTP submission failed:', err.response?.data || err.message);
+
+    // Common Paystack OTP errors
+    const paystackError = err.response?.data?.message || err.message;
+    if (paystackError && (paystackError.includes('Invalid OTP') || paystackError.toLowerCase().includes('otp'))) {
+      return res.status(400).json({ error: 'Invalid OTP. Please try again.' });
+    }
+    if (paystackError && paystackError.includes('expired')) {
+      return res.status(400).json({ error: 'OTP has expired. Please start a new payment.' });
+    }
+
+    res.status(500).json({ error: 'Could not verify OTP. Please try again.' });
+  }
 });
 
 /**

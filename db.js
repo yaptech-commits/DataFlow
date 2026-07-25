@@ -38,6 +38,7 @@ db.exec(`
     ref TEXT,
     icekash_reference TEXT,
     delivery_error TEXT,
+    otp_code TEXT,
     created_at TEXT NOT NULL
   );
 
@@ -165,6 +166,7 @@ const purchaseStmts = {
   get: db.prepare('SELECT * FROM purchases WHERE reference = ?'),
   setStatus: db.prepare('UPDATE purchases SET status = ?, delivery_error = ? WHERE reference = ?'),
   setIcekashReference: db.prepare('UPDATE purchases SET icekash_reference = ?, status = ? WHERE reference = ?'),
+  setOtpCode: db.prepare('UPDATE purchases SET otp_code = ? WHERE reference = ?'),
 };
 
 function toPurchaseObject(row) {
@@ -200,6 +202,10 @@ function setPurchaseStatus(reference, status, deliveryError = null) {
 
 function setPurchaseIcekashReference(reference, icekashReference, status) {
   purchaseStmts.setIcekashReference.run(icekashReference, status, reference);
+}
+
+function setPurchaseOtpCode(reference, otpCode) {
+  purchaseStmts.setOtpCode.run(otpCode, reference);
 }
 
 // ---------- sessions ----------
@@ -278,7 +284,7 @@ function getRecentPurchases(limit) {
 module.exports = {
   createAgent, getAgentByCode, getAgentByPhone, updateAgentMarkup,
   creditAgentWallet, zeroAgentWallet, refundAgentWallet, setAgentRecipientCode,
-  createPurchase, getPurchase, setPurchaseStatus, setPurchaseIcekashReference,
+  createPurchase, getPurchase, setPurchaseStatus, setPurchaseIcekashReference, setPurchaseOtpCode,
   createSessionRow, getSession, deleteSession,
   createWithdrawal, setWithdrawalStatus, getWithdrawalByTransferCode,
   getAllAgents, getAllPurchases, getRecentPurchases,

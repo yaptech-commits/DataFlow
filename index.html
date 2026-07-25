@@ -441,6 +441,17 @@
             style="background:var(--bg-alt); border:1px solid var(--line); color:var(--text); padding:12px 14px; border-radius:8px; font-family:'IBM Plex Mono', monospace; font-size:0.95rem;">
         </div>
 
+        <!-- OTP Input (hidden until needed) -->
+        <div id="otpSection" style="display:none; flex-direction:column; align-items:stretch; gap:8px; margin-top:26px;" class="calc-row">
+          <label for="otpInput">OTP code from your phone</label>
+          <div style="display:flex; gap:8px;">
+            <input type="text" id="otpInput" placeholder="e.g. 123456" maxlength="6"
+              style="flex:1; background:var(--bg-alt); border:1px solid var(--line); color:var(--text); padding:12px 14px; border-radius:8px; font-family:'IBM Plex Mono', monospace; font-size:0.95rem;">
+            <button id="submitOtpBtn" class="btn-primary" style="padding:12px 16px; border:none; cursor:pointer; font-family:inherit; white-space:nowrap;">Submit OTP</button>
+          </div>
+          <p id="otpStatus" style="margin-top:8px; font-size:0.84rem; color:var(--text-dim);"></p>
+        </div>
+
         <div class="calc-output">
           <div>
             <div class="big" id="priceOut">—</div>
@@ -699,10 +710,21 @@
   const buyBtn = document.getElementById('buyBtn');
   const phoneInput = document.getElementById('phone');
   const statusEl = document.getElementById('purchaseStatus');
+  const otpSection = document.getElementById('otpSection');
+  const otpInput = document.getElementById('otpInput');
+  const submitOtpBtn = document.getElementById('submitOtpBtn');
+  const otpStatus = document.getElementById('otpStatus');
+
+  let currentPurchaseReference = null;  // Track the current purchase for OTP submission
 
   function setStatus(msg, color){
     statusEl.textContent = msg;
     statusEl.style.color = color || 'var(--text-dim)';
+  }
+
+  function setOtpStatus(msg, color){
+    otpStatus.textContent = msg;
+    otpStatus.style.color = color || 'var(--text-dim)';
   }
 
   async function pollPurchase(reference, attempts = 0){
@@ -716,14 +738,19 @@
 
       if (data.status === 'delivered'){
         setStatus(`✓ ${data.capacity} ${data.network} delivered to ${data.phone}`, 'var(--green)');
+        otpSection.style.display = 'none';  // Hide OTP section on success
       } else if (data.status === 'failed'){
         setStatus('Payment failed or was declined. Please try again.', '#E4032E');
+        otpSection.style.display = 'none';
       } else if (data.status === 'payment_ok_delivery_failed'){
         setStatus(data.deliveryError ? `Payment succeeded but delivery failed: ${data.deliveryError}` : 'Payment succeeded but delivery had an issue — support has been notified.', '#E4032E');
+        otpSection.style.display = 'none';
       } else if (data.status === 'payment_ok_delivery_pending'){
         setStatus('Payment confirmed — delivery is taking longer than usual, check back shortly.', 'var(--gold)');
+        otpSection.style.display = 'none';
       } else if (data.status === 'processing_delivery'){
         setStatus('Payment confirmed — sending your data now...');
+        otpSection.style.display = 'none';
         setTimeout(() => pollPurchase(reference, attempts + 1), 3000);
       } else {
         setTimeout(() => pollPurchase(reference, attempts + 1), 3000);
@@ -732,6 +759,46 @@
       setStatus('Could not reach the server to confirm status.', '#E4032E');
     }
   }
+
+  // Handle OTP submission
+  submitOtpBtn.addEventListener('click', async () => {
+    const otp = otpInput.value.trim();
+
+    if (!otp || otp.length === 0) {
+      setOtpStatus('Enter the OTP code.', '#E4032E');
+      return;
+    }
+
+    if (!/^\d{4,6}$/.test(otp)) {
+      setOtpStatus('OTP should be 4-6 digits.', '#E4032E');
+      return;
+    }
+
+    submitOtpBtn.disabled = true;
+    setOtpStatus('Verifying OTP...');
+
+    try {
+      const res = await fetch(`${API_BASE}/api/purchase/${currentPurchaseReference}/otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ otp })
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setOtpStatus(data.error || 'OTP verification failed.', '#E4032E');
+        submitOtpBtn.disabled = false;
+        return;
+      }
+
+      setOtpStatus('OTP accepted — processing payment...');
+      // Start polling again to check payment status
+      pollPurchase(currentPurchaseReference);
+    } catch(err) {
+      setOtpStatus('Could not verify OTP. Is the backend running?', '#E4032E');
+      submitOtpBtn.disabled = false;
+    }
+  });
 
   // ---------- referral banner ----------
   if (refCode){
@@ -759,6 +826,7 @@
     }
 
     buyBtn.disabled = true;
+    otpSection.style.display = 'none';  // Hide OTP section initially
     setStatus('Starting payment — check your phone for a Mobile Money prompt...');
 
     try {
@@ -775,6 +843,20 @@
         return;
       }
 
+      currentPurchaseReference = data.reference;
+
+      // Check if OTP is required
+      if (data.status === 'otp_required') {
+        setStatus('OTP code sent to your phone.');
+        otpSection.style.display = 'flex';  // Show OTP input
+        otpInput.focus();
+        otpInput.value = '';
+        setOtpStatus('');
+        buyBtn.disabled = false;
+        return;
+      }
+
+      // Otherwise, proceed with normal polling
       setStatus(data.instructions || 'Approve the prompt on your phone...');
       pollPurchase(data.reference);
     } catch(err){
