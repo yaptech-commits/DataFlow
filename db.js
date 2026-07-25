@@ -229,10 +229,31 @@ function getWithdrawalByTransferCode(transferCode) {
   return { reference: row.reference, referralCode: row.referral_code, amount: row.amount, status: row.status };
 }
 
+// ---------- admin queries ----------
+
+const adminStmts = {
+  getAllAgents: db.prepare('SELECT * FROM agents ORDER BY created_at DESC'),
+  getAllPurchases: db.prepare('SELECT * FROM purchases ORDER BY created_at DESC'),
+  getRecentPurchases: db.prepare('SELECT * FROM purchases ORDER BY created_at DESC LIMIT ?'),
+};
+
+function getAllAgents() {
+  return adminStmts.getAllAgents.all().map(toAgentObject);
+}
+
+function getAllPurchases() {
+  return adminStmts.getAllPurchases.all().map(toPurchaseObject);
+}
+
+function getRecentPurchases(limit) {
+  return adminStmts.getRecentPurchases.all(limit).map(toPurchaseObject);
+}
+
 module.exports = {
   createAgent, getAgentByCode, getAgentByPhone, updateAgentMarkup,
   creditAgentWallet, zeroAgentWallet, refundAgentWallet, setAgentRecipientCode,
   createPurchase, getPurchase, setPurchaseStatus, setPurchaseIcekashReference,
   createSessionRow, getSession, deleteSession,
   createWithdrawal, setWithdrawalStatus, getWithdrawalByTransferCode,
+  getAllAgents, getAllPurchases, getRecentPurchases,
 };

@@ -80,6 +80,28 @@ const DEFAULT_AGENT_MARKUP_PERCENT = parseFloat(process.env.DEFAULT_AGENT_MARKUP
 const AGENT_MARKUP_MIN = 0;
 const AGENT_MARKUP_MAX = 100;
 
+// --- Admin authentication ---
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+const ADMIN_SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+function createAdminSession() {
+  const token = crypto.randomBytes(24).toString('hex');
+  // Store in memory for simplicity; in production, use a persistent store
+  adminSessions[token] = Date.now() + ADMIN_SESSION_TTL_MS;
+  return token;
+}
+
+function verifyAdminSession(token) {
+  if (!token || !adminSessions[token]) return false;
+  if (adminSessions[token] < Date.now()) {
+    delete adminSessions[token];
+    return false;
+  }
+  return true;
+}
+
+let adminSessions = {};
+
 function generateReferralCode(name) {
   const base = name.replace(/[^a-zA-Z]/g, '').slice(0, 5).toUpperCase() || 'AGENT';
   const suffix = crypto.randomBytes(2).toString('hex').toUpperCase();
@@ -632,6 +654,161 @@ app.post('/api/webhook/paystack', async (req, res) => {
   }
 
   res.sendStatus(200);
+});
+
+// --- Admin dashboard endpoints ---
+
+/**
+ * Admin login — verifies admin password, returns a session token.
+ */
+app.post('/api/admin/login', authLimiter, (req, res) => {
+  const { password } = req.body;
+
+  if (!password) {
+    return res.status(400).json({ error: 'Enter your password.' });
+  }
+
+  if (password !== ADMIN_PASSWORD) {
+    return res.status(401).json({ error: 'Incorrect password.' });
+  }
+
+  const token = createAdminSession();
+  res.json({ token });
+});
+
+/**
+ * Verify admin session middleware.
+ */
+function requireAdminSession(req, res) {
+  const authHeader = req.headers.authorization || '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+
+  if (!verifyAdminSession(token)) {
+    res.status(401).json({ error: 'Please log in to access this account.' });
+    return null;
+  }
+
+  return token;
+}
+
+/**
+ * Admin dashboard stats — revenue, cost, profit, order count.
+ */
+app.get('/api/admin/stats', (req, res) => {
+  if (!requireAdminSession(req, res)) return;
+
+  try {
+    // Get all purchases
+    const purchases = db.getAllPurchases();
+
+    let totalRevenue = 0;
+    let totalCost = 0;
+    let totalAgentPayout = 0;
+
+    purchases.forEach(p => {
+      if (p.status === 'delivered' || p.status.includes('delivery')) {
+        totalRevenue += p.amount;
+        totalCost += p.costPrice;
+        totalAgentPayout += p.agentMarkup;
+      }
+    });
+
+    const platformProfit = totalRevenue - totalCost - totalAgentPayout;
+
+    res.json({
+      totalRevenue: Number(totalRevenue.toFixed(2)),
+      totalCost: Number(totalCost.toFixed(2)),
+      totalAgentPayout: Number(totalAgentPayout.toFixed(2)),
+      platformProfit: Number(platformProfit.toFixed(2)),
+      totalPurchases: purchases.length,
+    });
+  } catch (err) {
+    console.error('Stats error:', err.message);
+    res.status(500).json({ error: 'Could not load stats.' });
+  }
+});
+
+/**
+ * Admin settings — platform markup and default agent markup.
+ */
+app.get('/api/admin/settings', (req, res) => {
+  if (!requireAdminSession(req, res)) return;
+
+  res.json({
+    platformMarkupPercent: PLATFORM_MARKUP_PERCENT,
+    defaultAgentMarkupPercent: DEFAULT_AGENT_MARKUP_PERCENT,
+  });
+});
+
+/**
+ * Update admin settings.
+ */
+app.patch('/api/admin/settings', (req, res) => {
+  if (!requireAdminSession(req, res)) return;
+
+  const { platformMarkupPercent, defaultAgentMarkupPercent } = req.body;
+
+  // In production, store these in the database or environment.
+  // For now, just validate and echo back.
+  const platformMarkup = parseFloat(platformMarkupPercent);
+  const defaultAgentMarkup = parseFloat(defaultAgentMarkupPercent);
+
+  if (Number.isNaN(platformMarkup) || platformMarkup < 0 || platformMarkup > 200) {
+    return res.status(400).json({ error: 'Platform markup must be between 0 and 200%' });
+  }
+
+  if (Number.isNaN(defaultAgentMarkup) || defaultAgentMarkup < 0 || defaultAgentMarkup > 100) {
+    return res.status(400).json({ error: 'Default agent markup must be between 0 and 100%' });
+  }
+
+  // TODO: Persist these values to the database or environment
+  // For now, just acknowledge the update
+  res.json({
+    platformMarkupPercent: platformMarkup,
+    defaultAgentMarkupPercent: defaultAgentMarkup,
+  });
+});
+
+/**
+ * Admin agents list — all registered agents with their stats.
+ */
+app.get('/api/admin/agents', (req, res) => {
+  if (!requireAdminSession(req, res)) return;
+
+  try {
+    const agents = db.getAllAgents();
+    const sanitized = agents.map(a => ({
+      referralCode: a.referralCode,
+      name: a.name,
+      network: a.network,
+      markupPercent: a.markupPercent,
+      walletBalance: a.walletBalance,
+      totalSales: a.totalSales,
+      createdAt: a.createdAt,
+    }));
+
+    res.json({ agents: sanitized });
+  } catch (err) {
+    console.error('Agents list error:', err.message);
+    res.status(500).json({ error: 'Could not load agents.' });
+  }
+});
+
+/**
+ * Admin purchases list — recent orders with optional limit.
+ */
+app.get('/api/admin/purchases', (req, res) => {
+  if (!requireAdminSession(req, res)) return;
+
+  try {
+    const limit = parseInt(req.query.limit) || 50;
+    const purchases = db.getRecentPurchases(limit);
+
+    res.json({ purchases });
+  } catch (err) {
+    console.error('Purchases list error:', err.message);
+    res.status(500).json({ error: 'Could not load purchases.' });
+  }
 });
 
 app.get('/health', (req, res) => res.json({ ok: true }));
