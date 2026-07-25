@@ -354,7 +354,7 @@
   </div>
 
   <script>
-    const API_BASE = window.location.origin.includes("netlify") ? window.location.origin + "/.netlify/functions/server" : "https://dataflow-backend-obbt.onrender.com";
+    const API_BASE = ""; // Use relative paths so Netlify _redirects can proxy to Render backend
     const adminPasswordInput = document.getElementById("adminPassword");
     const loginBtn = document.getElementById("loginBtn");
     const loginStatus = document.getElementById("loginStatus");
