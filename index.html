@@ -847,16 +847,18 @@
 
       // Check if OTP is required
       if (data.status === 'otp_required') {
-        setStatus('OTP code sent to your phone.');
+        setStatus(data.instructions || 'OTP code sent to your phone.');
         otpSection.style.display = 'flex';  // Show OTP input
         otpInput.focus();
         otpInput.value = '';
         setOtpStatus('');
         buyBtn.disabled = false;
+        // Start polling anyway in case they approve on phone instead of entering OTP
+        pollPurchase(data.reference);
         return;
       }
 
-      // Otherwise, proceed with normal polling
+      // Otherwise, proceed with normal polling for direct approval
       setStatus(data.instructions || 'Approve the prompt on your phone...');
       pollPurchase(data.reference);
     } catch(err){

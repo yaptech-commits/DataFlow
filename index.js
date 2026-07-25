@@ -583,24 +583,15 @@ app.post('/api/purchase', purchaseLimiter, async (req, res) => {
       ref: agent ? agent.referralCode : null,
     });
 
-    // If Paystack requires OTP, tell the frontend to show an OTP input
-    if (status === 'send_otp' || status === 'otp') {
-      return res.json({
-        reference,
-        amount: amountCedis,
-        status: 'otp_required',
-        instructions: 'Enter the OTP code sent to your phone.',
-      });
-    }
-
     // Paystack Mobile Money charges usually require the customer to approve a
-    // prompt on their phone (send_otp / pay_offline), so we tell the frontend
+    // prompt on their phone (pay_offline), so we tell the frontend
     // to keep polling instead of assuming success immediately.
+    // If Paystack requires OTP (send_otp / otp), we also inform the frontend.
     res.json({
       reference,
       amount: amountCedis,
-      status,
-      instructions: display_text || 'Approve the payment prompt on your phone.',
+      status: (status === 'send_otp' || status === 'otp') ? 'otp_required' : status,
+      instructions: display_text || (status === 'pay_offline' ? 'Approve the payment prompt on your phone.' : 'Processing payment...'),
     });
   } catch (err) {
     console.error(err.response?.data || err.message);
