@@ -587,11 +587,21 @@ app.post('/api/purchase', purchaseLimiter, async (req, res) => {
     // prompt on their phone (pay_offline), so we tell the frontend
     // to keep polling instead of assuming success immediately.
     // If Paystack requires OTP (send_otp / otp), we also inform the frontend.
+    let finalInstructions = display_text;
+    if (status === 'pay_offline' || status === 'pending') {
+      finalInstructions = 'Check your phone for a payment prompt.';
+      if (network === 'MTN') {
+        finalInstructions += ' If no prompt appears, dial *170#, go to Wallet > My Approvals.';
+      }
+    } else if (!finalInstructions) {
+      finalInstructions = 'Processing payment...';
+    }
+
     res.json({
       reference,
       amount: amountCedis,
       status: (status === 'send_otp' || status === 'otp') ? 'otp_required' : status,
-      instructions: display_text || (status === 'pay_offline' ? 'Approve the payment prompt on your phone.' : 'Processing payment...'),
+      instructions: finalInstructions,
     });
   } catch (err) {
     console.error(err.response?.data || err.message);

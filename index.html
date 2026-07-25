@@ -853,12 +853,15 @@
         otpInput.value = '';
         setOtpStatus('');
         buyBtn.disabled = false;
-        // Start polling anyway in case they approve on phone instead of entering OTP
+        
+        // IMPORTANT: We still poll because some users might get a direct prompt 
+        // even if Paystack asks for an OTP on the web.
         pollPurchase(data.reference);
         return;
       }
 
       // Otherwise, proceed with normal polling for direct approval
+      otpSection.style.display = 'none'; // Ensure OTP section is hidden
       setStatus(data.instructions || 'Approve the prompt on your phone...');
       pollPurchase(data.reference);
     } catch(err){
