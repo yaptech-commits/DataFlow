@@ -71,11 +71,24 @@ const withdrawLimiter = rateLimit({
 });
 
 // Your own margin over IceKash's cost, applied to EVERY sale — direct or via agent.
-// Configurable so you can change it without touching code.
-const PLATFORM_MARKUP_PERCENT = parseFloat(process.env.PLATFORM_MARKUP_PERCENT || '10');
+// The env var is only the initial default — the admin dashboard can change the
+// live value at any time and it's persisted in the settings table.
+const ENV_PLATFORM_MARKUP_PERCENT = parseFloat(process.env.PLATFORM_MARKUP_PERCENT || '10');
 
 // Suggested starting markup for a newly registered agent. They can change it later.
-const DEFAULT_AGENT_MARKUP_PERCENT = parseFloat(process.env.DEFAULT_AGENT_MARKUP_PERCENT || '15');
+const ENV_DEFAULT_AGENT_MARKUP_PERCENT = parseFloat(process.env.DEFAULT_AGENT_MARKUP_PERCENT || '15');
+
+// Live values: prefer what the admin saved in the settings table, fall back
+// to the environment defaults if nothing has been saved yet.
+function getPlatformMarkupPercent() {
+  const stored = parseFloat(db.getSetting('platform_markup_percent'));
+  return Number.isNaN(stored) ? ENV_PLATFORM_MARKUP_PERCENT : stored;
+}
+
+function getDefaultAgentMarkupPercent() {
+  const stored = parseFloat(db.getSetting('default_agent_markup_percent'));
+  return Number.isNaN(stored) ? ENV_DEFAULT_AGENT_MARKUP_PERCENT : stored;
+}
 
 // Sane bounds so an agent can't set something absurd (0% = no profit, 100% = doubling the price)
 const AGENT_MARKUP_MIN = 0;
@@ -155,7 +168,7 @@ function requireAgentSession(req, res, code) {
  * regardless of whether an agent is involved.
  */
 function computePricing(costPrice, agent) {
-  const basePrice = Number((costPrice * (1 + PLATFORM_MARKUP_PERCENT / 100)).toFixed(2));
+  const basePrice = Number((costPrice * (1 + getPlatformMarkupPercent() / 100)).toFixed(2));
 
   if (!agent) {
     return { costPrice, basePrice, finalPrice: basePrice, agentMarkup: 0 };
@@ -342,7 +355,7 @@ app.post('/api/agents/register', authLimiter, async (req, res) => {
     return res.status(409).json({ error: 'That phone number is already registered. Please log in instead.' });
   }
 
-  let initialMarkup = DEFAULT_AGENT_MARKUP_PERCENT;
+  let initialMarkup = getDefaultAgentMarkupPercent();
   if (markupPercent !== undefined) {
     const parsed = parseFloat(markupPercent);
     if (!Number.isNaN(parsed) && parsed >= AGENT_MARKUP_MIN && parsed <= AGENT_MARKUP_MAX) {
@@ -736,8 +749,8 @@ app.get('/api/admin/settings', (req, res) => {
   if (!requireAdminSession(req, res)) return;
 
   res.json({
-    platformMarkupPercent: PLATFORM_MARKUP_PERCENT,
-    defaultAgentMarkupPercent: DEFAULT_AGENT_MARKUP_PERCENT,
+    platformMarkupPercent: getPlatformMarkupPercent(),
+    defaultAgentMarkupPercent: getDefaultAgentMarkupPercent(),
   });
 });
 
@@ -749,8 +762,6 @@ app.patch('/api/admin/settings', (req, res) => {
 
   const { platformMarkupPercent, defaultAgentMarkupPercent } = req.body;
 
-  // In production, store these in the database or environment.
-  // For now, just validate and echo back.
   const platformMarkup = parseFloat(platformMarkupPercent);
   const defaultAgentMarkup = parseFloat(defaultAgentMarkupPercent);
 
@@ -762,8 +773,11 @@ app.patch('/api/admin/settings', (req, res) => {
     return res.status(400).json({ error: 'Default agent markup must be between 0 and 100%' });
   }
 
-  // TODO: Persist these values to the database or environment
-  // For now, just acknowledge the update
+  // Persist so the change survives restarts and takes effect immediately —
+  // both the packages list and purchase pricing read the live value.
+  db.setSetting('platform_markup_percent', platformMarkup);
+  db.setSetting('default_agent_markup_percent', defaultAgentMarkup);
+
   res.json({
     platformMarkupPercent: platformMarkup,
     defaultAgentMarkupPercent: defaultAgentMarkup,

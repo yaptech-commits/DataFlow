@@ -55,7 +55,33 @@ db.exec(`
     paystack_transfer_code TEXT,
     created_at TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+  );
 `);
+
+// ---------- settings ----------
+// Simple key/value store so the admin dashboard can change pricing at
+// runtime without a redeploy. Values are stored as strings.
+
+const settingStmts = {
+  get: db.prepare('SELECT value FROM settings WHERE key = ?'),
+  set: db.prepare(`
+    INSERT INTO settings (key, value) VALUES (?, ?)
+    ON CONFLICT(key) DO UPDATE SET value = excluded.value
+  `),
+};
+
+function getSetting(key) {
+  const row = settingStmts.get.get(key);
+  return row ? row.value : null;
+}
+
+function setSetting(key, value) {
+  settingStmts.set.run(key, String(value));
+}
 
 // ---------- agents ----------
 
@@ -256,4 +282,5 @@ module.exports = {
   createSessionRow, getSession, deleteSession,
   createWithdrawal, setWithdrawalStatus, getWithdrawalByTransferCode,
   getAllAgents, getAllPurchases, getRecentPurchases,
+  getSetting, setSetting,
 };
