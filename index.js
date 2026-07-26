@@ -594,8 +594,48 @@ app.get('/api/admin/stats', requireAdminSession, (req, res) => {
 });
 
 /**
+ * GET /api/admin/settings
+ * Returns global platform settings.
+ */
+app.get('/api/admin/settings', requireAdminSession, (req, res) => {
+  res.json({
+    platformMarkupPercent: getPlatformMarkupPercent(),
+    defaultAgentMarkupPercent: getDefaultAgentMarkupPercent()
+  });
+});
+
+/**
+ * POST /api/admin/settings
+ * Updates global platform settings and optionally applies them to all agents.
+ */
+app.post('/api/admin/settings', requireAdminSession, (req, res) => {
+  const { platformMarkupPercent, defaultAgentMarkupPercent, applyToAllAgents } = req.body;
+
+  if (typeof platformMarkupPercent === 'number') {
+    db.setSetting('platform_markup_percent', platformMarkupPercent);
+  }
+
+  if (typeof defaultAgentMarkupPercent === 'number') {
+    db.setSetting('default_agent_markup_percent', defaultAgentMarkupPercent);
+    
+    if (applyToAllAgents) {
+      const agents = db.getAllAgents();
+      agents.forEach(agent => {
+        db.updateAgentMarkup(agent.referralCode, defaultAgentMarkupPercent);
+      });
+    }
+  }
+
+  res.json({
+    platformMarkupPercent: getPlatformMarkupPercent(),
+    defaultAgentMarkupPercent: getDefaultAgentMarkupPercent(),
+    message: 'Settings updated successfully.'
+  });
+});
+
+/**
  * GET /api/admin/packages
- * Returns the list of all packages for management.
+ * Returns the list of all packages.
  */
 app.get('/api/admin/packages', requireAdminSession, async (req, res) => {
   try {
@@ -606,36 +646,12 @@ app.get('/api/admin/packages', requireAdminSession, async (req, res) => {
       capacity: p.capacity,
       price: p.price
     }));
-    res.json({ packages });
+    res.json({ 
+      packages,
+      platformMarkupPercent: getPlatformMarkupPercent()
+    });
   } catch (err) {
     res.status(502).json({ error: 'Could not fetch packages from provider.' });
-  }
-});
-
-/**
- * PATCH /api/admin/packages/:id
- * Updates a package's price.
- */
-app.patch('/api/admin/packages/:id', requireAdminSession, async (req, res) => {
-  const { id } = req.params;
-  const { price } = req.body;
-  
-  if (typeof price !== 'number' || price <= 0) {
-    return res.status(400).json({ error: 'Price must be a positive number.' });
-  }
-  
-  try {
-    const rawPackages = await getPackages();
-    const pkg = rawPackages.find(p => `${p.network}-${p.capacity}`.toLowerCase().replace(/\s+/g, '-') === id);
-    
-    if (!pkg) return res.status(404).json({ error: 'Package not found.' });
-    
-    db.setSetting(`price_override_${id}`, price);
-    pkg.price = price;
-    
-    res.json({ id, network: pkg.network, capacity: pkg.capacity, price });
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to update package price.' });
   }
 });
 
@@ -693,39 +709,7 @@ app.get('/api/admin/purchases', requireAdminSession, (req, res) => {
   }
 });
 
-/**
- * GET /api/admin/settings
- */
-app.get('/api/admin/settings', requireAdminSession, (req, res) => {
-  res.json({
-    platformMarkupPercent: getPlatformMarkupPercent(),
-    defaultAgentMarkupPercent: getDefaultAgentMarkupPercent(),
-  });
-});
-
-/**
- * PATCH /api/admin/settings
- */
-app.patch('/api/admin/settings', requireAdminSession, (req, res) => {
-  const { platformMarkupPercent, defaultAgentMarkupPercent } = req.body;
-  
-  if (platformMarkupPercent !== undefined) {
-    const val = parseFloat(platformMarkupPercent);
-    if (Number.isNaN(val) || val < 0 || val > 200) return res.status(400).json({ error: 'Invalid platform markup.' });
-    db.setSetting('platform_markup_percent', val);
-  }
-  
-  if (defaultAgentMarkupPercent !== undefined) {
-    const val = parseFloat(defaultAgentMarkupPercent);
-    if (Number.isNaN(val) || val < 0 || val > 100) return res.status(400).json({ error: 'Invalid default agent markup.' });
-    db.setSetting('default_agent_markup_percent', val);
-  }
-  
-  res.json({
-    platformMarkupPercent: getPlatformMarkupPercent(),
-    defaultAgentMarkupPercent: getDefaultAgentMarkupPercent(),
-  });
-});
+// (Duplicate settings endpoints removed - reconciled above)
 
 /**
  * Lets the frontend fetch the current package list with prices already
