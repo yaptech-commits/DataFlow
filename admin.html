@@ -231,7 +231,7 @@
   function ghs(n){ return 'GH₵ ' + Number(n || 0).toFixed(2); }
 
   // ---------- login ----------
-  document.getElementById('adminLoginBtn').addEventListener('click', async () => {
+  async function handleLogin() {
     const password = document.getElementById('adminPassword').value;
     const btn = document.getElementById('adminLoginBtn');
     if (!password){
@@ -253,23 +253,41 @@
       if (!res.ok){
         loginStatus.textContent = data.error || 'Login failed.';
         loginStatus.style.color = 'var(--red)';
+        btn.disabled = false;
         return;
       }
       adminToken = data.token;
+      localStorage.setItem('dataflow_admin_token', adminToken);
       loginScreen.style.display = 'none';
       adminApp.style.display = 'block';
       logoutBtn.style.display = 'inline-block';
       loadEverything();
     } catch(err){
-      loginStatus.textContent = 'Could not reach the server.';
+      console.error('Login error:', err);
+      loginStatus.textContent = 'Could not reach the server. Check your connection.';
       loginStatus.style.color = 'var(--red)';
-    } finally {
       btn.disabled = false;
     }
+  }
+
+  document.getElementById('adminLoginBtn').addEventListener('click', handleLogin);
+  document.getElementById('adminPassword').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') handleLogin();
   });
+
+  // Check for existing session
+  const savedToken = localStorage.getItem('dataflow_admin_token');
+  if (savedToken) {
+    adminToken = savedToken;
+    loginScreen.style.display = 'none';
+    adminApp.style.display = 'block';
+    logoutBtn.style.display = 'inline-block';
+    loadEverything();
+  }
 
   logoutBtn.addEventListener('click', () => {
     adminToken = null;
+    localStorage.removeItem('dataflow_admin_token');
     adminApp.style.display = 'none';
     logoutBtn.style.display = 'none';
     loginScreen.style.display = 'flex';
