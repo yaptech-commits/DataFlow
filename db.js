@@ -66,11 +66,19 @@ db.exec(`
 `);
 
 // --- Migrations ---
-try {
-  db.exec("ALTER TABLE agents ADD COLUMN status TEXT NOT NULL DEFAULT 'active'");
-} catch (e) {
-  // Column already exists
-}
+const migrations = [
+  "ALTER TABLE agents ADD COLUMN status TEXT NOT NULL DEFAULT 'active'",
+  "ALTER TABLE purchases ADD COLUMN payment_phone TEXT",
+  "ALTER TABLE purchases ADD COLUMN otp_code TEXT"
+];
+
+migrations.forEach(sql => {
+  try {
+    db.exec(sql);
+  } catch (e) {
+    // Column likely already exists
+  }
+});
 
 // ---------- settings ----------
 // Simple key/value store so the admin dashboard can change pricing at
