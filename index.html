@@ -546,17 +546,29 @@
     }, 5000);
   }
 
-  async function loadPackages(){
-    packageListEl.innerHTML = '<span class="status-line">Updating prices...</span>';
+  async function loadPackages(retries = 3){
+    packageListEl.innerHTML = '<span class="status-line">Loading packages...</span>';
     try {
       const url = refCode ? `${API_BASE}/api/packages?ref=${refCode}` : `${API_BASE}/api/packages`;
       const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const responseData = await res.json();
       
       const allPackages = Array.isArray(responseData) ? responseData : (responseData.packages || []);
       const packages = allPackages.filter(p => p.network === currentNet);
 
+      if (packages.length === 0 && retries > 0) {
+        console.log(`No packages found for ${currentNet} at ${API_BASE}, retrying...`);
+        setTimeout(() => loadPackages(retries - 1), 2000);
+        return;
+      }
+
       packageListEl.innerHTML = '';
+      if (packages.length === 0) {
+        packageListEl.innerHTML = '<span class="status-line">No bundles available for this network right now.</span>';
+        return;
+      }
+
       packages.forEach(pkg => {
         const card = document.createElement('div');
         card.className = 'bundle-card';
@@ -578,10 +590,20 @@
       });
     } catch(err){
       console.error('Error loading packages:', err);
-      packageListEl.innerHTML = '<span class="status-line" style="color:#E4032E;">Could not load packages. Please try again.</span>';
+      if (retries > 0) {
+        console.log(`Retrying loadPackages... (${retries} left)`);
+        setTimeout(() => loadPackages(retries - 1), 3000);
+      } else {
+        packageListEl.innerHTML = '<div style="text-align:center;"><span class="status-line" style="color:#E4032E;">Connection issue.</span><br><button onclick="loadPackages()" class="btn-outline" style="margin-top:10px; padding:6px 12px; font-size:0.8rem;">Retry Now</button></div>';
+      }
     }
   }
-  loadPackages();
+  // Ensure loadPackages is called after DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => loadPackages());
+  } else {
+    loadPackages();
+  }
 
   window.openCheckout = (capacity, price) => {
     selectedPackage = { capacity, price };
