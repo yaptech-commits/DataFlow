@@ -29,6 +29,7 @@ db.exec(`
     reference TEXT PRIMARY KEY,
     network TEXT NOT NULL,
     phone TEXT NOT NULL,
+    payment_phone TEXT,
     capacity TEXT NOT NULL,
     cost_price REAL NOT NULL,
     base_price REAL NOT NULL,
@@ -156,13 +157,13 @@ function setAgentRecipientCode(code, recipientCode) {
 
 // ---------- purchases ----------
 
-const purchaseStmts = {
-  insert: db.prepare(`
-    INSERT INTO purchases (reference, network, phone, capacity, cost_price, base_price,
-      agent_markup, amount, status, ref, created_at)
-    VALUES (@reference, @network, @phone, @capacity, @costPrice, @basePrice,
-      @agentMarkup, @amount, @status, @ref, @createdAt)
-  `),
+  const purchaseStmts = {
+    insert: db.prepare(`
+      INSERT INTO purchases (reference, network, phone, payment_phone, capacity, cost_price, base_price,
+        agent_markup, amount, status, ref, created_at)
+      VALUES (@reference, @network, @phone, @paymentPhone, @capacity, @costPrice, @basePrice,
+        @agentMarkup, @amount, @status, @ref, @createdAt)
+    `),
   get: db.prepare('SELECT * FROM purchases WHERE reference = ?'),
   setStatus: db.prepare('UPDATE purchases SET status = ?, delivery_error = ? WHERE reference = ?'),
   setIcekashReference: db.prepare('UPDATE purchases SET icekash_reference = ?, status = ? WHERE reference = ?'),
@@ -175,6 +176,7 @@ function toPurchaseObject(row) {
     reference: row.reference,
     network: row.network,
     phone: row.phone,
+    paymentPhone: row.payment_phone,
     capacity: row.capacity,
     costPrice: row.cost_price,
     basePrice: row.base_price,

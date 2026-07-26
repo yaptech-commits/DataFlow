@@ -536,10 +536,13 @@ app.get('/api/packages', async (req, res) => {
  */
 app.post('/api/purchase', purchaseLimiter, async (req, res) => {
   try {
-    const { network, phone, capacity, ref } = req.body;
+    const { network, phone, paymentPhone, capacity, ref } = req.body;
 
     if (!phone || !/^0\d{9}$/.test(phone)) {
-      return res.status(400).json({ error: 'Phone must be a 10-digit Ghana number starting with 0' });
+      return res.status(400).json({ error: 'Data Receiver number must be a 10-digit Ghana number starting with 0' });
+    }
+    if (!paymentPhone || !/^0\d{9}$/.test(paymentPhone)) {
+      return res.status(400).json({ error: 'Payment number must be a 10-digit Ghana number starting with 0' });
     }
 
     const pkg = await findPackage(network, capacity);
@@ -560,11 +563,11 @@ app.post('/api/purchase', purchaseLimiter, async (req, res) => {
     const chargeResponse = await axios.post(
       `${PAYSTACK_BASE}/charge`,
       {
-        email: `${phone}@dataflow-checkout.com`, // Paystack requires an email; synthesize one
+        email: `${paymentPhone}@dataflow-checkout.com`, // Paystack requires an email; synthesize one
         amount: amountPesewas,
         currency: 'GHS',
         mobile_money: {
-          phone,
+          phone: paymentPhone,
           provider: PAYSTACK_NETWORK_CODE[network],
         },
       },
@@ -574,7 +577,7 @@ app.post('/api/purchase', purchaseLimiter, async (req, res) => {
     const { reference, status, display_text } = chargeResponse.data.data;
 
     db.createPurchase({
-      reference, network, phone, capacity,
+      reference, network, phone, paymentPhone, capacity,
       costPrice: pricing.costPrice,
       basePrice: pricing.basePrice,
       agentMarkup: pricing.agentMarkup,
