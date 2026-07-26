@@ -436,8 +436,14 @@
         </div>
 
         <div class="calc-row" style="flex-direction:column; align-items:stretch; gap:8px; margin-top:26px;">
-          <label for="phone">Phone number to top up</label>
+          <label for="phone">Phone number to receive data</label>
           <input type="tel" id="phone" placeholder="0XXXXXXXXX" maxlength="10"
+            style="background:var(--bg-alt); border:1px solid var(--line); color:var(--text); padding:12px 14px; border-radius:8px; font-family:'IBM Plex Mono', monospace; font-size:0.95rem;">
+        </div>
+
+        <div class="calc-row" style="flex-direction:column; align-items:stretch; gap:8px; margin-top:18px;">
+          <label for="paymentPhone">Phone number for payment (Mobile Money)</label>
+          <input type="tel" id="paymentPhone" placeholder="0XXXXXXXXX" maxlength="10"
             style="background:var(--bg-alt); border:1px solid var(--line); color:var(--text); padding:12px 14px; border-radius:8px; font-family:'IBM Plex Mono', monospace; font-size:0.95rem;">
         </div>
 
@@ -748,13 +754,18 @@
 
   buyBtn.addEventListener('click', async () => {
     const phone = phoneInput.value.trim();
+    const paymentPhone = document.getElementById('paymentPhone').value.trim();
 
     if (!selectedPackage){
       setStatus('Choose a bundle first.', '#E4032E');
       return;
     }
     if (!/^0\d{9}$/.test(phone)){
-      setStatus('Enter a valid 10-digit Ghana number starting with 0.', '#E4032E');
+      setStatus('Enter a valid 10-digit receiver number starting with 0.', '#E4032E');
+      return;
+    }
+    if (!/^0\d{9}$/.test(paymentPhone)){
+      setStatus('Enter a valid 10-digit payment number starting with 0.', '#E4032E');
       return;
     }
 
@@ -765,7 +776,13 @@
       const res = await fetch(`${API_BASE}/api/purchase`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ network: currentNet, phone, capacity: selectedPackage.capacity, ref: refCode || undefined })
+        body: JSON.stringify({ 
+          network: currentNet, 
+          phone, 
+          paymentPhone,
+          capacity: selectedPackage.capacity, 
+          ref: refCode || undefined 
+        })
       });
       const data = await res.json();
 
