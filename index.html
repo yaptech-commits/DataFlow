@@ -278,20 +278,7 @@
 
 <section class="wrap feature-cards">
 
-  <div class="feature-card fc-blue">
-    <div class="feature-top">
-      <div>
-        <div class="feature-eyebrow" style="color:var(--blue)">Resell · Earn</div>
-        <h3>Become an agent</h3>
-        <p>Get your own shop link, set your own markup, and keep every cedi — paid to your DataFlow wallet.</p>
-      </div>
-      <div class="feature-price"><div class="lbl">Sign up</div><div class="amt" style="font-size:1.05rem; color:var(--blue);">below ↓</div></div>
-    </div>
-    <div class="feature-note">
-      <span class="ic">!</span>
-      <span>Your agent wallet is separate from Mobile Money — withdraw to your own number anytime from your dashboard.</span>
-    </div>
-  </div>
+<!-- Agent section removed -->
 </section>
 
 <section class="wrap" id="calc">
@@ -451,10 +438,15 @@
 
   function openAgentModal() {
     agentModal.classList.add('open');
-    if (!sessionToken) {
+    if (typeof sessionToken === 'undefined' || !sessionToken) {
       agentLoginForm.style.display = 'block';
       agentSignupForm.style.display = 'none';
       agentDashboard.style.display = 'none';
+    } else {
+      agentLoginForm.style.display = 'none';
+      agentSignupForm.style.display = 'none';
+      agentDashboard.style.display = 'block';
+      loadAgentData();
     }
   }
 
