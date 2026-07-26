@@ -256,6 +256,16 @@
     <input type="tel" id="paymentPhone" placeholder="0XXXXXXXXX" maxlength="10">
 
     <p id="purchaseStatus" class="status-line"></p>
+
+    <!-- OTP Section -->
+    <div id="otpSection" style="display:none; flex-direction:column; gap:7px; margin-top:16px; border-top:1px solid var(--line); padding-top:16px;">
+      <label for="otpInput">OTP code from your phone</label>
+      <div style="display:flex; gap:10px;">
+        <input type="text" id="otpInput" placeholder="Enter code" style="flex:1; margin-top:0;">
+        <button id="submitOtpBtn" class="btn-solid" style="width:auto; margin-top:0; padding:0 20px;">Submit OTP</button>
+      </div>
+      <p id="otpStatus" class="status-line"></p>
+    </div>
   </div>
 
   <div class="bundle-grid" id="packageList">
@@ -372,10 +382,21 @@
   const phoneInput = document.getElementById('phone');
   const paymentPhoneInput = document.getElementById('paymentPhone');
   const purchaseStatus = document.getElementById('purchaseStatus');
+  const otpSection = document.getElementById('otpSection');
+  const otpInput = document.getElementById('otpInput');
+  const submitOtpBtn = document.getElementById('submitOtpBtn');
+  const otpStatus = document.getElementById('otpStatus');
+
+  let currentPurchaseReference = null;
 
   function setStatus(txt, clr = 'var(--text-dim)'){
     purchaseStatus.textContent = txt;
     purchaseStatus.style.color = clr;
+  }
+
+  function setOtpStatus(txt, clr = 'var(--text-dim)'){
+    otpStatus.textContent = txt;
+    otpStatus.style.color = clr;
   }
 
   async function loadPackages(){
@@ -436,6 +457,10 @@
         setStatus('Payment confirmed — sending your data now...');
         setTimeout(() => pollPurchase(reference, attempts + 1), 3000);
       } else {
+        // If it's still pending, update the status to show we are still checking
+        if (attempts > 0) {
+          setStatus('Processing your payment... please wait.');
+        }
         setTimeout(() => pollPurchase(reference, attempts + 1), 3000);
       }
     } catch(err){
@@ -478,7 +503,17 @@
         return;
       }
 
+      currentPurchaseReference = data.reference;
       setStatus(data.instructions || 'Approve the prompt on your phone...');
+      
+      // If OTP is required, show the OTP section
+      if (data.status === 'otp_required') {
+        otpSection.style.display = 'flex';
+        otpInput.focus();
+        otpInput.value = '';
+        setOtpStatus('');
+      }
+      
       pollPurchase(data.reference);
     } catch(err){
       setStatus('Could not reach the server. Is the backend running?', '#E4032E');
@@ -630,6 +665,42 @@
   });
 
   agentLogoutBtn.addEventListener('click', logout);
+
+  // Handle OTP submission
+  submitOtpBtn.addEventListener('click', async () => {
+    const otp = otpInput.value.trim();
+
+    if (!otp || !/^\d{4,6}$/.test(otp)) {
+      setOtpStatus('Enter a valid 4-6 digit OTP.', '#E4032E');
+      return;
+    }
+
+    submitOtpBtn.disabled = true;
+    setOtpStatus('Verifying OTP...');
+
+    try {
+      const res = await fetch(`${API_BASE}/api/purchase/${currentPurchaseReference}/otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ otp })
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setOtpStatus(data.error || 'OTP verification failed.', '#E4032E');
+        submitOtpBtn.disabled = false;
+        return;
+      }
+
+      setOtpStatus('OTP accepted — processing payment...');
+      setStatus('OTP accepted — processing payment...');
+      // Start polling again to check payment status
+      pollPurchase(currentPurchaseReference);
+    } catch(err) {
+      setOtpStatus('Could not verify OTP. Is the backend running?', '#E4032E');
+      submitOtpBtn.disabled = false;
+    }
+  });
 
   agentMarkupSaveBtn.addEventListener('click', async () => {
     if (!sessionToken || !loggedInCode) return;

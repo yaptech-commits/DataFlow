@@ -18,7 +18,22 @@ app.use(express.json());
 app.use(express.static('public'));
 
 const allowedOrigin = process.env.ALLOWED_ORIGIN || '*';
-app.use(cors({ origin: allowedOrigin }));
+const allowedOrigins = [
+  allowedOrigin,
+  'https://data-flow-black.vercel.app',
+  'https://dataflow-gh.netlify.app'
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes('*')) {
+      return callback(null, true);
+    }
+    return callback(new Error('The CORS policy for this site does not allow access from the specified Origin.'), false);
+  }
+}));
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
 const PAYSTACK_BASE = 'https://api.paystack.co';
