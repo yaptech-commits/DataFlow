@@ -321,6 +321,22 @@
       <button id="agentLoginBtn" class="btn-outline" style="margin-top:18px;">Log in</button>
       <p id="agentLoginStatus" class="status-line"></p>
     </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" style="display:none; position:fixed; top:20px; left:50%; transform:translateX(-50%); z-index:1000; min-width:300px; padding:16px 20px; border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,0.15); align-items:center; gap:12px; font-weight:600; animation:slideDown 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);">
+      <div id="toastIcon" style="width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.1rem;"></div>
+      <div id="toastMsg" style="flex:1;"></div>
+    </div>
+
+    <style>
+      @keyframes slideDown {
+        from { top:-100px; opacity:0; }
+        to { top:20px; opacity:1; }
+      }
+      .toast-success { background:#E8F7F0; border:1.5px solid #0EA35B; color:#0EA35B; }
+      .toast-error { background:#FEECEF; border:1.5px solid #E4032E; color:#E4032E; }
+    </style>
+
     <div id="agentDashboard" style="display:none;">
       <div class="dash-row">
         <div><div class="lbl">Wallet balance</div><div class="big" id="agentWallet">GH₵ 0.00</div></div>
@@ -399,6 +415,24 @@
     otpStatus.style.color = clr;
   }
 
+  function showToast(msg, type = 'success'){
+    const toast = document.getElementById('toast');
+    const icon = document.getElementById('toastIcon');
+    const msgEl = document.getElementById('toastMsg');
+    
+    toast.className = type === 'success' ? 'toast-success' : 'toast-error';
+    icon.innerHTML = type === 'success' ? '✓' : '✕';
+    icon.style.background = type === 'success' ? '#0EA35B' : '#E4032E';
+    icon.style.color = '#fff';
+    msgEl.textContent = msg;
+    
+    toast.style.display = 'flex';
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      setTimeout(() => { toast.style.display = 'none'; toast.style.opacity = '1'; }, 400);
+    }, 5000);
+  }
+
   async function loadPackages(){
     packageListEl.innerHTML = '<span class="status-line">Updating prices...</span>';
     try {
@@ -451,10 +485,14 @@
 
       if (data.status === 'delivered'){
         setStatus(`✓ ${data.capacity} ${data.network} delivered to ${data.phone}`, 'var(--green)');
+        showToast(`${data.capacity} ${data.network} delivered successfully!`, 'success');
       } else if (data.status === 'failed'){
         setStatus('Payment failed or was declined. Please try again.', '#E4032E');
+        showToast('Payment was declined or failed. Please try again.', 'error');
       } else if (data.status === 'payment_ok_delivery_failed'){
-        setStatus(data.deliveryError ? `Payment succeeded but delivery failed: ${data.deliveryError}` : 'Payment succeeded but delivery had an issue — support has been notified.', '#E4032E');
+        const err = data.deliveryError || 'Delivery issue — support notified.';
+        setStatus(`Payment succeeded but delivery failed: ${err}`, '#E4032E');
+        showToast('Payment successful, but delivery failed. We are investigating.', 'error');
       } else if (data.status === 'payment_ok_delivery_pending'){
         setStatus('Payment confirmed — delivery is taking longer than usual, check back shortly.', 'var(--yellow-deep)');
       } else if (data.status === 'processing_delivery'){
