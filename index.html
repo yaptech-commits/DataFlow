@@ -263,7 +263,7 @@
 
     <div class="hero-actions">
       <a href="#calc" class="btn-hero-solid">Buy Data Now ➔</a>
-      <a href="#agent" class="btn-hero-outline">How It Works ▶</a>
+      <button id="heroBecomeAgentBtn" class="btn-hero-outline">Become an agent ▶</button>
     </div>
   </div>
 </section>
@@ -338,42 +338,13 @@
   </div>
 </div>
 
-<section class="section wrap" id="agent">
-  <h2>Become an agent</h2>
-  <p class="section-sub">Sell DataFlow bundles under your own shop link and set the markup you keep.</p>
+<!-- Agent Modal -->
+<div class="modal-overlay" id="agentModal">
+  <div class="modal" style="max-width: 460px;">
+    <button class="modal-close" id="closeAgentModal">&times;</button>
+    <h2>Become an Agent</h2>
+    <p class="sub">Earn commission on every data bundle sold through your link.</p>
 
-  <div class="agent-card">
-    <h3>Sign up as an agent</h3>
-    <div class="field">
-      <label for="agentName">Full name</label>
-      <input type="text" id="agentName" placeholder="e.g. Ama Boateng">
-    </div>
-    <div class="field">
-      <label for="agentPhone">Phone number</label>
-      <input type="tel" id="agentPhone" placeholder="0XXXXXXXXX" maxlength="10">
-    </div>
-    <div class="field">
-      <label for="agentNetwork">Which network is this Mobile Money number on? (for paying your commission)</label>
-      <select id="agentNetwork">
-        <option value="MTN">MTN</option>
-        <option value="Telecel">Telecel</option>
-        <option value="AirtelTigo">AirtelTigo</option>
-      </select>
-    </div>
-    <div class="field">
-      <label for="agentMarkup">Your markup — added on top of our price, yours to keep (%)</label>
-      <input type="number" id="agentMarkup" value="15" min="0" max="100" step="1">
-    </div>
-    <div class="field">
-      <label for="agentPassword">Create a password (for logging into your dashboard)</label>
-      <input type="password" id="agentPassword" placeholder="At least 6 characters" minlength="6">
-    </div>
-    <button id="agentSignupBtn" class="btn-solid">Get my shop link</button>
-    <p id="agentSignupStatus" class="status-line"></p>
-  </div>
-
-  <div class="agent-card">
-    <h3>Already an agent? Log in</h3>
     <div id="agentLoginForm">
       <div class="field">
         <label for="agentCodeInput">Your agent code</label>
@@ -383,24 +354,44 @@
         <label for="agentPasswordInput">Password</label>
         <input type="password" id="agentPasswordInput" placeholder="Your password">
       </div>
-      <button id="agentLoginBtn" class="btn-outline" style="margin-top:18px;">Log in</button>
+      <button id="agentLoginBtn" class="btn-solid">Log in to Dashboard</button>
       <p id="agentLoginStatus" class="status-line"></p>
+      <div style="text-align:center; margin-top:16px;">
+        <a href="#" id="showSignupLink" style="font-size:0.85rem; color:var(--blue); font-weight:600; text-decoration:none;">New here? Create an agent account</a>
+      </div>
     </div>
 
-    <!-- Notification Toast -->
-    <div id="toast" style="display:none; position:fixed; top:20px; left:50%; transform:translateX(-50%); z-index:1000; min-width:300px; padding:16px 20px; border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,0.15); align-items:center; gap:12px; font-weight:600; animation:slideDown 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);">
-      <div id="toastIcon" style="width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.1rem;"></div>
-      <div id="toastMsg" style="flex:1;"></div>
+    <div id="agentSignupForm" style="display:none;">
+      <div class="field">
+        <label for="agentName">Full name</label>
+        <input type="text" id="agentName" placeholder="e.g. Ama Boateng">
+      </div>
+      <div class="field">
+        <label for="agentPhone">Phone number</label>
+        <input type="tel" id="agentPhone" placeholder="0XXXXXXXXX" maxlength="10">
+      </div>
+      <div class="field">
+        <label for="agentNetwork">Mobile Money Network</label>
+        <select id="agentNetwork">
+          <option value="MTN">MTN</option>
+          <option value="Telecel">Telecel</option>
+          <option value="AirtelTigo">AirtelTigo</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="agentMarkup">Your markup (%)</label>
+        <input type="number" id="agentMarkup" value="15" min="0" max="100">
+      </div>
+      <div class="field">
+        <label for="agentPassword">Create password</label>
+        <input type="password" id="agentPassword" placeholder="At least 6 characters">
+      </div>
+      <button id="agentSignupBtn" class="btn-solid">Create Account</button>
+      <p id="agentSignupStatus" class="status-line"></p>
+      <div style="text-align:center; margin-top:16px;">
+        <a href="#" id="showLoginLink" style="font-size:0.85rem; color:var(--blue); font-weight:600; text-decoration:none;">Already an agent? Log in here</a>
+      </div>
     </div>
-
-    <style>
-      @keyframes slideDown {
-        from { top:-100px; opacity:0; }
-        to { top:20px; opacity:1; }
-      }
-      .toast-success { background:#E8F7F0; border:1.5px solid #0EA35B; color:#0EA35B; }
-      .toast-error { background:#FEECEF; border:1.5px solid #E4032E; color:#E4032E; }
-    </style>
 
     <div id="agentDashboard" style="display:none;">
       <div class="dash-row">
@@ -413,13 +404,28 @@
       </div>
       <div style="display:flex; gap:10px; margin-top:16px;">
         <button id="agentMarkupSaveBtn" class="btn-outline" style="flex:1;">Save markup</button>
-        <button id="agentWithdrawBtn" class="btn-solid" style="flex:1.5; margin-top:0;">Withdraw to MoMo</button>
+        <button id="agentWithdrawBtn" class="btn-solid" style="flex:1.5; margin-top:0;">Withdraw</button>
       </div>
       <p id="agentWithdrawStatus" class="status-line"></p>
       <button id="agentLogoutBtn" class="btn-outline" style="margin-top:20px; border:none; color:var(--text-dim);">Log out</button>
     </div>
   </div>
-</section>
+</div>
+
+<!-- Notification Toast -->
+<div id="toast" style="display:none; position:fixed; top:20px; left:50%; transform:translateX(-50%); z-index:1000; min-width:300px; padding:16px 20px; border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,0.15); align-items:center; gap:12px; font-weight:600; animation:slideDown 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);">
+  <div id="toastIcon" style="width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.1rem;"></div>
+  <div id="toastMsg" style="flex:1;"></div>
+</div>
+
+<style>
+  @keyframes slideDown {
+    from { top:-100px; opacity:0; }
+    to { top:20px; opacity:1; }
+  }
+  .toast-success { background:#E8F7F0; border:1.5px solid #0EA35B; color:#0EA35B; }
+  .toast-error { background:#FEECEF; border:1.5px solid #E4032E; color:#E4032E; }
+</style>
 
 <footer class="wrap">
   <p>&copy; 2026 DataFlow Ghana · Fast, secure, reliable.</p>
@@ -432,6 +438,50 @@
   const navMenuBtn = document.getElementById('navMenuBtn');
   navMenuBtn.addEventListener('click', (e) => { e.stopPropagation(); navMenu.classList.toggle('open'); });
   document.addEventListener('click', () => navMenu.classList.remove('open'));
+
+  // Agent Modal Logic
+  const agentModal = document.getElementById('agentModal');
+  const closeAgentModal = document.getElementById('closeAgentModal');
+  const heroBecomeAgentBtn = document.getElementById('heroBecomeAgentBtn');
+  const showSignupLink = document.getElementById('showSignupLink');
+  const showLoginLink = document.getElementById('showLoginLink');
+  const agentSignupForm = document.getElementById('agentSignupForm');
+  const agentLoginForm = document.getElementById('agentLoginForm');
+  const agentDashboard = document.getElementById('agentDashboard');
+
+  function openAgentModal() {
+    agentModal.classList.add('open');
+    if (!sessionToken) {
+      agentLoginForm.style.display = 'block';
+      agentSignupForm.style.display = 'none';
+      agentDashboard.style.display = 'none';
+    }
+  }
+
+  heroBecomeAgentBtn.addEventListener('click', openAgentModal);
+  closeAgentModal.addEventListener('click', () => agentModal.classList.remove('open'));
+  agentModal.addEventListener('click', (e) => { if (e.target === agentModal) agentModal.classList.remove('open'); });
+
+  showSignupLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    agentLoginForm.style.display = 'none';
+    agentSignupForm.style.display = 'block';
+  });
+
+  showLoginLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    agentSignupForm.style.display = 'none';
+    agentLoginForm.style.display = 'block';
+  });
+
+  // Update nav links to open modal
+  document.querySelectorAll('a[href="#agent"]').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      navMenu.classList.remove('open');
+      openAgentModal();
+    });
+  });
 
   let currentNet = 'MTN';
   let refCode = new URLSearchParams(window.location.search).get('ref');
