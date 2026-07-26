@@ -21,6 +21,7 @@ const allowedOrigin = process.env.ALLOWED_ORIGIN || '*';
 const allowedOrigins = [
   allowedOrigin,
   'https://data-flow-black.vercel.app',
+  'https://data-flow-admin.vercel.app',
   'https://dataflow-gh.netlify.app'
 ];
 
