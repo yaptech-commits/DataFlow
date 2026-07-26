@@ -75,6 +75,19 @@
   .navmenu-panel a:hover{ background:var(--bg); }
 
   /* ---------- hero ---------- */
+  .hero-section{ 
+    background:#020617; color:#fff; padding:60px 0 40px; 
+    background-image: linear-gradient(to bottom, rgba(2,6,23,0.85), rgba(2,6,23,0.95)), url('assets/hero-banner.png');
+    background-size: cover; background-position: center; border-radius: 0 0 32px 32px;
+  }
+  .hero-content h1{ font-size:3.2rem; line-height:1.1; font-weight:800; }
+  .hero-content h1 span{ display:block; }
+  .hero-content .highlight{ color:var(--yellow); }
+  .hero-content p{ margin-top:20px; font-size:1.1rem; color:rgba(255,255,255,0.7); max-width:480px; }
+  .hero-actions{ display:flex; gap:16px; margin-top:32px; flex-wrap:wrap; }
+  .btn-hero-solid{ background:var(--yellow); color:var(--ink); padding:14px 28px; border-radius:100px; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:10px; }
+  .btn-hero-outline{ border:1.5px solid rgba(255,255,255,0.3); color:#fff; padding:14px 28px; border-radius:100px; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:10px; }
+  
   .hero{ padding:34px 0 8px; }
   .hero h1{ font-size:2.4rem; font-weight:800; }
   .hero p.sub{ margin-top:8px; color:var(--text-dim); max-width:420px; font-size:0.98rem; }
@@ -205,14 +218,28 @@
   </div>
 </div>
 
-<section class="hero wrap">
-  <h1>Buy data</h1>
-  <p class="sub">Pick a network and a bundle. Delivered to any Ghanaian number, instantly.</p>
+<section class="hero-section">
+  <div class="wrap hero-content">
+    <div style="display:inline-flex; align-items:center; gap:8px; background:rgba(255,255,255,0.1); padding:6px 14px; border-radius:100px; font-size:0.75rem; font-weight:700; letter-spacing:0.05em; margin-bottom:24px; border:1px solid rgba(255,255,255,0.15);">
+      <span style="color:var(--yellow)">✓</span> INSTANT. SECURE. RELIABLE.
+    </div>
+    <h1>Stay Connected.<br><span class="highlight">Flow Limitless.</span></h1>
+    <p>Buy affordable data bundles instantly for all networks in Ghana. Fast, easy and reliable.</p>
+    
+    <div style="display:flex; gap:24px; margin-top:28px; font-size:0.85rem; font-weight:600; color:rgba(255,255,255,0.8);">
+      <div style="display:flex; align-items:center; gap:8px;">⚡ Instant Delivery</div>
+      <div style="display:flex; align-items:center; gap:8px;">🔒 Secure Payments</div>
+      <div style="display:flex; align-items:center; gap:8px;">🎧 24/7 Support</div>
+    </div>
 
-  <div class="pill-row">
-    <button class="pill pill-green"><span class="ico">📣</span> Join community for updates</button>
+    <div class="hero-actions">
+      <a href="#calc" class="btn-hero-solid">Buy Data Now ➔</a>
+      <a href="#agent" class="btn-hero-outline">How It Works ▶</a>
+    </div>
   </div>
+</section>
 
+<section class="hero wrap">
   <div class="network-row" id="networkPicker">
     <div class="net-choice active" data-net="MTN">MTN</div>
     <div class="net-choice" data-net="AirtelTigo"><span class="dot" style="background:var(--blue)"></span>AirtelTigo</div>
