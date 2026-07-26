@@ -404,8 +404,11 @@
     try {
       const url = refCode ? `${API_BASE}/api/packages?ref=${refCode}` : `${API_BASE}/api/packages`;
       const res = await fetch(url);
-      const allData = await res.json();
-      const packages = allData.filter(p => p.network === currentNet);
+      const responseData = await res.json();
+      
+      // The API returns { packages: [...] } or just [...]
+      const allPackages = Array.isArray(responseData) ? responseData : (responseData.packages || []);
+      const packages = allPackages.filter(p => p.network === currentNet);
 
       packageListEl.innerHTML = '';
       packages.forEach(pkg => {
@@ -427,7 +430,8 @@
         packageListEl.appendChild(card);
       });
     } catch(err){
-      packageListEl.innerHTML = '<span class="status-line" style="color:#E4032E;">Could not load packages.</span>';
+      console.error('Error loading packages:', err);
+      packageListEl.innerHTML = '<span class="status-line" style="color:#E4032E;">Could not load packages. Please try again.</span>';
     }
   }
   loadPackages();
