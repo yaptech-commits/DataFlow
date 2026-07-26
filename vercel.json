@@ -1,9 +1,6 @@
 {
   "version": 2,
-  "cleanUrls": true,
-  "trailingSlash": false,
   "rewrites": [
-    { "source": "/admin", "destination": "/admin.html" },
-    { "source": "/((?!admin.html|admin).*)", "destination": "/index.html" }
+    { "source": "/admin", "destination": "/admin.html" }
   ]
 }
