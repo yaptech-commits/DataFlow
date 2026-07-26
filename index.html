@@ -451,6 +451,13 @@
     }, 5000);
   }
 
+  let selectedPackage = null;
+  const checkoutModal = document.getElementById('checkoutModal');
+  const modalBundleCap = document.getElementById('modalBundleCap');
+  const modalBundlePrice = document.getElementById('modalBundlePrice');
+  const confirmPurchaseBtn = document.getElementById('confirmPurchaseBtn');
+  const closeModal = document.getElementById('closeModal');
+
   async function loadPackages(){
     packageListEl.innerHTML = '<span class="status-line">Updating prices...</span>';
     try {
@@ -458,7 +465,6 @@
       const res = await fetch(url);
       const responseData = await res.json();
       
-      // The API returns { packages: [...] } or just [...]
       const allPackages = Array.isArray(responseData) ? responseData : (responseData.packages || []);
       const packages = allPackages.filter(p => p.network === currentNet);
 
@@ -466,6 +472,7 @@
       packages.forEach(pkg => {
         const card = document.createElement('div');
         card.className = 'bundle-card';
+        card.onclick = () => openCheckout(pkg.capacity, pkg.price);
         card.innerHTML = `
           <div class="bundle-badges">
             <span class="badge-oval">${pkg.network}</span>
@@ -477,7 +484,7 @@
             <span class="cur">GH₵</span>
             <span class="amt">${pkg.price.toFixed(2)}</span>
           </div>
-          <button class="buy-btn" data-capacity="${pkg.capacity}" data-price="${pkg.price}">Buy Now</button>
+          <button class="buy-btn">Buy Now</button>
         `;
         packageListEl.appendChild(card);
       });
@@ -488,9 +495,25 @@
   }
   loadPackages();
 
-  packageListEl.addEventListener('click', (e) => {
-    if (e.target.classList.contains('buy-btn')) handleBuyClick(e.target);
+  window.openCheckout = (capacity, price) => {
+    selectedPackage = { capacity, price };
+    modalBundleCap.textContent = capacity;
+    modalBundlePrice.textContent = `GH₵ ${price.toFixed(2)}`;
+    purchaseStatus.textContent = '';
+    otpSection.style.display = 'none';
+    checkoutModal.classList.add('open');
+    phoneInput.focus();
+  };
+
+  closeModal.addEventListener('click', () => {
+    checkoutModal.classList.remove('open');
   });
+
+  checkoutModal.addEventListener('click', (e) => {
+    if (e.target === checkoutModal) checkoutModal.classList.remove('open');
+  });
+
+  confirmPurchaseBtn.addEventListener('click', () => handleBuyClick());
 
   async function pollPurchase(reference, attempts = 0){
     if (attempts > 60){
