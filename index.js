@@ -110,7 +110,7 @@ const AGENT_MARKUP_MIN = 0;
 const AGENT_MARKUP_MAX = 100;
 
 // --- Admin authentication ---
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Gist_zone@blogger1';
 const ADMIN_SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 let adminSessions = {};
 
