@@ -827,6 +827,10 @@ app.post('/api/purchase', purchaseLimiter, async (req, res) => {
       if (network === 'MTN') {
         finalInstructions += ' If no prompt appears, dial *170#, go to Wallet > My Approvals.';
       }
+    } else if (status === 'success') {
+      // Rare but possible for some test cards or specific flows
+      await deliverBundle(db.getPurchase(reference), reference);
+      finalInstructions = 'Payment successful! Delivering your data...';
     } else if (!finalInstructions) {
       finalInstructions = 'Processing payment...';
     }
@@ -834,7 +838,7 @@ app.post('/api/purchase', purchaseLimiter, async (req, res) => {
     res.json({
       reference,
       amount: amountCedis,
-      status: (status === 'send_otp' || status === 'otp') ? 'otp_required' : status,
+      status: (status === 'send_otp' || status === 'otp') ? 'otp_required' : (status === 'success' ? 'processing_delivery' : status),
       instructions: finalInstructions,
     });
   } catch (err) {
@@ -843,14 +847,40 @@ app.post('/api/purchase', purchaseLimiter, async (req, res) => {
   }
 });
 
-/**
- * Step 2: Frontend polls this every few seconds until status is no longer "pending".
- */
-app.get('/api/purchase/:reference', async (req, res) => {
-  const record = db.getPurchase(req.params.reference);
-  if (!record) return res.status(404).json({ error: 'Unknown reference' });
-  res.json(record);
-});
+  /**
+   * Step 2: Frontend polls this every few seconds until status is no longer "pending".
+   * We also do a quick check against Paystack's API to see if the status has
+   * changed, in case the webhook is delayed.
+   */
+  app.get('/api/purchase/:reference', async (req, res) => {
+    const reference = req.params.reference;
+    let record = db.getPurchase(reference);
+    if (!record) return res.status(404).json({ error: 'Unknown reference' });
+
+    // If the record is still pending, double-check with Paystack to be safe
+    if (record.status === 'pending') {
+      try {
+        const { data } = await axios.get(`${PAYSTACK_BASE}/transaction/verify/${reference}`, {
+          headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` }
+        });
+
+        if (data.data.status === 'success') {
+          // Sync status and trigger delivery if it hasn't happened yet
+          db.setPurchaseStatus(reference, 'processing_delivery');
+          record = db.getPurchase(reference); // Refresh record
+          await deliverBundle(record, reference);
+        } else if (data.data.status === 'failed') {
+          db.setPurchaseStatus(reference, 'failed');
+          record = db.getPurchase(reference); // Refresh record
+        }
+      } catch (err) {
+        // Verification failed, just return the local record
+        console.error('Paystack verification failed during polling:', err.message);
+      }
+    }
+
+    res.json(record);
+  });
 
 /**
  * Step 2b: Frontend submits the OTP code that Paystack sent to the customer's phone.
