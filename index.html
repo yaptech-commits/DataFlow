@@ -419,7 +419,8 @@
 </footer>
 
 <script>
-  const API_BASE = 'https://dataflow-backend-obbt.onrender.com'; // Backend URL
+  window.API_BASE = 'https://dataflow-backend-obbt.onrender.com'; // Backend URL
+  const API_BASE = window.API_BASE;
 
   const navMenu = document.getElementById('navMenu');
   const navMenuBtn = document.getElementById('navMenuBtn');
@@ -435,6 +436,8 @@
   const agentSignupForm = document.getElementById('agentSignupForm');
   const agentLoginForm = document.getElementById('agentLoginForm');
   const agentDashboard = document.getElementById('agentDashboard');
+  let sessionToken = null;
+  let loggedInCode = null;
 
   function openAgentModal() {
     agentModal.classList.add('open');
@@ -547,10 +550,17 @@
   }
 
   async function loadPackages(retries = 3){
-    packageListEl.innerHTML = '<span class="status-line">Loading packages...</span>';
+    console.log(`[DataFlow] Loading packages for ${currentNet} (Retries left: ${retries})...`);
+    packageListEl.innerHTML = '<div style="padding:20px; text-align:center;"><span class="status-line">Loading bundles...</span></div>';
+    
     try {
       const url = refCode ? `${API_BASE}/api/packages?ref=${refCode}` : `${API_BASE}/api/packages`;
-      const res = await fetch(url);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+      
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const responseData = await res.json();
       
@@ -558,14 +568,14 @@
       const packages = allPackages.filter(p => p.network === currentNet);
 
       if (packages.length === 0 && retries > 0) {
-        console.log(`No packages found for ${currentNet} at ${API_BASE}, retrying...`);
+        console.warn(`[DataFlow] No packages found for ${currentNet}, retrying in 2s...`);
         setTimeout(() => loadPackages(retries - 1), 2000);
         return;
       }
 
       packageListEl.innerHTML = '';
       if (packages.length === 0) {
-        packageListEl.innerHTML = '<span class="status-line">No bundles available for this network right now.</span>';
+        packageListEl.innerHTML = '<div style="padding:20px; text-align:center;"><span class="status-line">No bundles available for ' + currentNet + ' right now.</span></div>';
         return;
       }
 
@@ -588,13 +598,18 @@
         `;
         packageListEl.appendChild(card);
       });
+      console.log(`[DataFlow] Successfully loaded ${packages.length} packages for ${currentNet}.`);
     } catch(err){
-      console.error('Error loading packages:', err);
+      console.error('[DataFlow] Error loading packages:', err);
       if (retries > 0) {
-        console.log(`Retrying loadPackages... (${retries} left)`);
         setTimeout(() => loadPackages(retries - 1), 3000);
       } else {
-        packageListEl.innerHTML = '<div style="text-align:center;"><span class="status-line" style="color:#E4032E;">Connection issue.</span><br><button onclick="loadPackages()" class="btn-outline" style="margin-top:10px; padding:6px 12px; font-size:0.8rem;">Retry Now</button></div>';
+        packageListEl.innerHTML = `
+          <div style="grid-column: 1 / -1; text-align:center; padding:30px 20px; background:var(--surface); border-radius:18px; border:1px solid var(--line);">
+            <span class="status-line" style="color:#E4032E; display:block; margin-bottom:12px;">Connection issue while loading packages.</span>
+            <button onclick="loadPackages()" style="background:var(--ink); color:#fff; border:none; padding:10px 20px; border-radius:100px; font-weight:700; cursor:pointer; font-size:0.9rem;">Retry Now</button>
+          </div>
+        `;
       }
     }
   }
@@ -776,10 +791,8 @@
   });
 
   // ---------- agent login + dashboard (session-based) ----------
-  const agentLoginForm = document.getElementById('agentLoginForm');
   const agentLoginBtn = document.getElementById('agentLoginBtn');
   const agentLoginStatus = document.getElementById('agentLoginStatus');
-  const agentDashboard = document.getElementById('agentDashboard');
   const agentWallet = document.getElementById('agentWallet');
   const agentSalesCount = document.getElementById('agentSalesCount');
   const agentWithdrawBtn = document.getElementById('agentWithdrawBtn');
@@ -788,8 +801,6 @@
   const agentMarkupSaveBtn = document.getElementById('agentMarkupSaveBtn');
   const agentLogoutBtn = document.getElementById('agentLogoutBtn');
 
-  let sessionToken = null;
-  let loggedInCode = null;
 
   function showDashboard(data){
     agentWallet.textContent = `GH₵ ${data.walletBalance.toFixed(2)}`;
