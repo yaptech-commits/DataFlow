@@ -276,9 +276,25 @@
   </div>
 </section>
 
-<section class="wrap feature-cards">
-
-<!-- Agent section removed -->
+<section class="wrap" style="margin-top: 40px;">
+  <div class="feature-card fc-green">
+    <div class="feature-top">
+      <div>
+        <div class="feature-eyebrow">PARTNERSHIP</div>
+        <h3>Become a DataFlow Agent</h3>
+        <p>Start your own data business today. Earn commissions by selling data to others through your personalized link.</p>
+      </div>
+      <div class="feature-price">
+        <div class="lbl">COMMISSION</div>
+        <div class="amt">UP TO 20%</div>
+      </div>
+    </div>
+    <div class="feature-note">
+      <div class="ic">!</div>
+      <div>Join over 500+ agents across Ghana earning daily with DataFlow.</div>
+    </div>
+    <button onclick="openAgentModal()" class="btn-solid" style="margin-top: 20px; background: var(--green); color: #fff;">Get Started Now</button>
+  </div>
 </section>
 
 <section class="wrap" id="calc">
@@ -434,8 +450,8 @@
   const showSignupLink = document.getElementById('showSignupLink');
   const showLoginLink = document.getElementById('showLoginLink');
   const agentSignupForm = document.getElementById('agentSignupForm');
-  const agentLoginForm = document.getElementById('agentLoginForm');
-  const agentDashboard = document.getElementById('agentDashboard');
+
+
   let sessionToken = null;
   let loggedInCode = null;
 
