@@ -800,6 +800,7 @@ app.post('/api/purchase', purchaseLimiter, async (req, res) => {
       amount: amountCedis,
       status: 'pending',
       ref: agent ? agent.referralCode : null,
+      paymentNumber: null,
     });
 
     // Paystack Mobile Money charges usually require the customer to approve a
@@ -865,6 +866,44 @@ app.post('/api/purchase', purchaseLimiter, async (req, res) => {
     }
 
     res.json(record);
+  });
+
+  /**
+   * Step 2c: Frontend manually triggers a verification check.
+   * This is used if the automatic prompt or webhook is delayed.
+   */
+  app.post('/api/purchase/:reference/verify', purchaseLimiter, async (req, res) => {
+    const reference = req.params.reference;
+    const { paymentNumber } = req.body;
+    
+    let record = db.getPurchase(reference);
+    if (!record) return res.status(404).json({ error: 'Unknown reference' });
+
+    // Store the payment number if provided
+    if (paymentNumber) {
+      db.setPurchasePaymentNumber(reference, paymentNumber);
+    }
+
+    try {
+      const { data } = await axios.get(`${PAYSTACK_BASE}/transaction/verify/${reference}`, {
+        headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` }
+      });
+
+      if (data.data.status === 'success') {
+        if (record.status === 'pending' || record.status === 'failed') {
+          db.setPurchaseStatus(reference, 'processing_delivery');
+          record = db.getPurchase(reference);
+          await deliverBundle(record, reference);
+        }
+      } else if (data.data.status === 'failed') {
+        db.setPurchaseStatus(reference, 'failed');
+        record = db.getPurchase(reference);
+      }
+    } catch (err) {
+      console.error('Manual verification failed:', err.message);
+    }
+
+    res.json(db.getPurchase(reference));
   });
 
 /**

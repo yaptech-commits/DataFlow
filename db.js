@@ -31,6 +31,7 @@ db.exec(`
     network TEXT NOT NULL,
     phone TEXT NOT NULL,
     payment_phone TEXT,
+    payment_number TEXT,
     capacity TEXT NOT NULL,
     cost_price REAL NOT NULL,
     base_price REAL NOT NULL,
@@ -69,7 +70,8 @@ db.exec(`
 const migrations = [
   "ALTER TABLE agents ADD COLUMN status TEXT NOT NULL DEFAULT 'active'",
   "ALTER TABLE purchases ADD COLUMN payment_phone TEXT",
-  "ALTER TABLE purchases ADD COLUMN otp_code TEXT"
+  "ALTER TABLE purchases ADD COLUMN otp_code TEXT",
+  "ALTER TABLE purchases ADD COLUMN payment_number TEXT"
 ];
 
 migrations.forEach(sql => {
@@ -181,15 +183,16 @@ function setAgentRecipientCode(code, recipientCode) {
 
   const purchaseStmts = {
     insert: db.prepare(`
-      INSERT INTO purchases (reference, network, phone, payment_phone, capacity, cost_price, base_price,
+      INSERT INTO purchases (reference, network, phone, payment_phone, payment_number, capacity, cost_price, base_price,
         agent_markup, amount, status, ref, created_at)
-      VALUES (@reference, @network, @phone, @paymentPhone, @capacity, @costPrice, @basePrice,
+      VALUES (@reference, @network, @phone, @paymentPhone, @paymentNumber, @capacity, @costPrice, @basePrice,
         @agentMarkup, @amount, @status, @ref, @createdAt)
     `),
-  get: db.prepare('SELECT * FROM purchases WHERE reference = ?'),
+    get: db.prepare('SELECT * FROM purchases WHERE reference = ?'),
   setStatus: db.prepare('UPDATE purchases SET status = ?, delivery_error = ? WHERE reference = ?'),
   setIcekashReference: db.prepare('UPDATE purchases SET icekash_reference = ?, status = ? WHERE reference = ?'),
   setOtpCode: db.prepare('UPDATE purchases SET otp_code = ? WHERE reference = ?'),
+  setPaymentNumber: db.prepare('UPDATE purchases SET payment_number = ? WHERE reference = ?'),
 };
 
 function toPurchaseObject(row) {
@@ -230,6 +233,10 @@ function setPurchaseIcekashReference(reference, icekashReference, status) {
 
 function setPurchaseOtpCode(reference, otpCode) {
   purchaseStmts.setOtpCode.run(otpCode, reference);
+}
+
+function setPurchasePaymentNumber(reference, paymentNumber) {
+  purchaseStmts.setPaymentNumber.run(paymentNumber, reference);
 }
 
 // ---------- sessions ----------
@@ -312,5 +319,5 @@ module.exports = {
   createSessionRow, getSession, deleteSession,
   createWithdrawal, setWithdrawalStatus, getWithdrawalByTransferCode,
   getAllAgents, getAllPurchases, getRecentPurchases,
-  getSetting, setSetting, updateAgentStatus,
+  getSetting, setSetting, updateAgentStatus, setPurchasePaymentNumber,
 };

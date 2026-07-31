@@ -343,6 +343,16 @@
       <p id="otpStatus" class="status-line" style="font-size:0.75rem;"></p>
     </div>
 
+    <!-- Manual Verification Section -->
+    <div id="manualVerificationSection" style="display:none; flex-direction:column; gap:7px; margin-top:16px; border-top:1px solid var(--line); padding-top:16px;">
+      <label for="paymentNumberInput" style="font-size:0.8rem; font-weight:600; color:var(--text-dim);">Payment Number (Transaction ID)</label>
+      <div style="display:flex; gap:10px;">
+        <input type="text" id="paymentNumberInput" placeholder="Enter ID" style="flex:1; margin-top:0; padding:10px; font-size:0.9rem;">
+        <button id="verifyPaymentBtn" class="btn-solid" style="width:auto; margin-top:0; padding:0 15px; font-size:0.85rem;">I've completed the payment</button>
+      </div>
+      <p id="verificationStatus" class="status-line" style="font-size:0.75rem;"></p>
+    </div>
+
     <button id="confirmPurchaseBtn" class="btn-solid" style="margin-top:20px;">Pay Now</button>
   </div>
 </div>
@@ -534,6 +544,10 @@
   const otpInput = document.getElementById('otpInput');
   const submitOtpBtn = document.getElementById('submitOtpBtn');
   const otpStatus = document.getElementById('otpStatus');
+  const manualVerificationSection = document.getElementById('manualVerificationSection');
+  const paymentNumberInput = document.getElementById('paymentNumberInput');
+  const verifyPaymentBtn = document.getElementById('verifyPaymentBtn');
+  const verificationStatus = document.getElementById('verificationStatus');
 
   let currentPurchaseReference = null;
   let selectedPackage = null;
@@ -648,6 +662,7 @@
     modalBundlePrice.textContent = `GH₵ ${price.toFixed(2)}`;
     setStatus('');
     otpSection.style.display = 'none';
+    manualVerificationSection.style.display = 'none';
     checkoutModal.classList.add('open');
     phoneInput.focus();
   };
@@ -661,6 +676,42 @@
   });
 
   confirmPurchaseBtn.addEventListener('click', () => handleBuyClick());
+
+  verifyPaymentBtn.addEventListener('click', async () => {
+    if (!currentPurchaseReference) return;
+    const paymentNumber = paymentNumberInput.value.trim();
+    
+    verifyPaymentBtn.disabled = true;
+    verificationStatus.textContent = 'Verifying payment...';
+    verificationStatus.style.color = 'var(--text-dim)';
+
+    try {
+      const res = await fetch(`${API_BASE}/api/purchase/${currentPurchaseReference}/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentNumber })
+      });
+      const data = await res.json();
+
+      if (data.status === 'delivered') {
+        verificationStatus.textContent = '✓ Payment verified and data delivered!';
+        verificationStatus.style.color = 'var(--green)';
+        setStatus(`✓ ${data.capacity} ${data.network} delivered to ${data.phone}`, 'var(--green)');
+        showToast(`${data.capacity} ${data.network} delivered successfully!`, 'success');
+      } else if (data.status === 'failed') {
+        verificationStatus.textContent = 'Payment verification failed. Please try again.';
+        verificationStatus.style.color = '#E4032E';
+      } else {
+        verificationStatus.textContent = 'Payment not yet confirmed. Please wait a moment and try again.';
+        verificationStatus.style.color = 'var(--yellow-deep)';
+      }
+    } catch (err) {
+      verificationStatus.textContent = 'Error reaching the server.';
+      verificationStatus.style.color = '#E4032E';
+    } finally {
+      verifyPaymentBtn.disabled = false;
+    }
+  });
 
   async function pollPurchase(reference, attempts = 0){
     if (attempts > 60){
@@ -744,6 +795,11 @@
         otpInput.value = '';
         setOtpStatus('');
       }
+      
+      // Show manual verification as a fallback
+      manualVerificationSection.style.display = 'flex';
+      paymentNumberInput.value = '';
+      verificationStatus.textContent = '';
       
       pollPurchase(data.reference);
     } catch(err){
