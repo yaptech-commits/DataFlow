@@ -89,10 +89,10 @@ const withdrawLimiter = rateLimit({
 // Your own margin over IceKash's cost, applied to EVERY sale — direct or via agent.
 // The env var is only the initial default — the admin dashboard can change the
 // live value at any time and it's persisted in the settings table.
-const ENV_PLATFORM_MARKUP_PERCENT = parseFloat(process.env.PLATFORM_MARKUP_PERCENT || '10');
+const ENV_PLATFORM_MARKUP_PERCENT = parseFloat(process.env.PLATFORM_MARKUP_PERCENT || '30');
 
 // Suggested starting markup for a newly registered agent. They can change it later.
-const ENV_DEFAULT_AGENT_MARKUP_PERCENT = parseFloat(process.env.DEFAULT_AGENT_MARKUP_PERCENT || '15');
+const ENV_DEFAULT_AGENT_MARKUP_PERCENT = parseFloat(process.env.DEFAULT_AGENT_MARKUP_PERCENT || '25');
 
 // Live values: prefer what the admin saved in the settings table, fall back
 // to the environment defaults if nothing has been saved yet.
