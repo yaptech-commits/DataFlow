@@ -469,8 +469,15 @@
     document.getElementById("saveSettingsBtn").addEventListener("click", async () => {
       const btn = document.getElementById("saveSettingsBtn");
       const statusEl = document.getElementById("settingsStatus");
-      const platformMarkupPercent = document.getElementById("platformMarkupInput").value;
-      const defaultAgentMarkupPercent = document.getElementById("defaultAgentMarkupInput").value;
+      const platformMarkupPercent = parseFloat(document.getElementById("platformMarkupInput").value);
+      const defaultAgentMarkupPercent = parseFloat(document.getElementById("defaultAgentMarkupInput").value);
+      
+      if (isNaN(platformMarkupPercent) || isNaN(defaultAgentMarkupPercent)) {
+        statusEl.textContent = "Please enter valid numbers.";
+        statusEl.style.color = "var(--red)";
+        return;
+      }
+
       btn.disabled = true;
       statusEl.textContent = "Saving...";
       statusEl.style.color = "var(--text-dim)";

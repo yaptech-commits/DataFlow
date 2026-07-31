@@ -98,14 +98,14 @@ const ENV_DEFAULT_AGENT_MARKUP_PERCENT = parseFloat(process.env.DEFAULT_AGENT_MA
 // to the environment defaults if nothing has been saved yet.
 function getPlatformMarkupPercent() {
   const stored = parseFloat(db.getSetting('platform_markup_percent'));
-  // Use default (30%) if not set or if currently 0
+  // Use default (30%) if not set or if currently 0 (as requested)
   if (Number.isNaN(stored) || stored === 0) return ENV_PLATFORM_MARKUP_PERCENT;
   return stored;
 }
 
 function getDefaultAgentMarkupPercent() {
   const stored = parseFloat(db.getSetting('default_agent_markup_percent'));
-  // Use default (25%) if not set or if currently 0
+  // Use default (25%) if not set or if currently 0 (as requested)
   if (Number.isNaN(stored) || stored === 0) return ENV_DEFAULT_AGENT_MARKUP_PERCENT;
   return stored;
 }
@@ -609,24 +609,30 @@ app.get('/api/admin/settings', requireAdminSession, (req, res) => {
 });
 
 /**
- * POST /api/admin/settings
+ * POST/PATCH /api/admin/settings
  * Updates global platform settings and optionally applies them to all agents.
  */
-app.post('/api/admin/settings', requireAdminSession, (req, res) => {
+const updateSettings = (req, res) => {
   const { platformMarkupPercent, defaultAgentMarkupPercent, applyToAllAgents } = req.body;
 
-  if (typeof platformMarkupPercent === 'number') {
-    db.setSetting('platform_markup_percent', platformMarkupPercent);
+  if (platformMarkupPercent !== undefined) {
+    const parsed = parseFloat(platformMarkupPercent);
+    if (!Number.isNaN(parsed)) {
+      db.setSetting('platform_markup_percent', parsed);
+    }
   }
 
-  if (typeof defaultAgentMarkupPercent === 'number') {
-    db.setSetting('default_agent_markup_percent', defaultAgentMarkupPercent);
-    
-    if (applyToAllAgents) {
-      const agents = db.getAllAgents();
-      agents.forEach(agent => {
-        db.updateAgentMarkup(agent.referralCode, defaultAgentMarkupPercent);
-      });
+  if (defaultAgentMarkupPercent !== undefined) {
+    const parsed = parseFloat(defaultAgentMarkupPercent);
+    if (!Number.isNaN(parsed)) {
+      db.setSetting('default_agent_markup_percent', parsed);
+      
+      if (applyToAllAgents) {
+        const agents = db.getAllAgents();
+        agents.forEach(agent => {
+          db.updateAgentMarkup(agent.referralCode, parsed);
+        });
+      }
     }
   }
 
@@ -635,7 +641,10 @@ app.post('/api/admin/settings', requireAdminSession, (req, res) => {
     defaultAgentMarkupPercent: getDefaultAgentMarkupPercent(),
     message: 'Settings updated successfully.'
   });
-});
+};
+
+app.post('/api/admin/settings', requireAdminSession, updateSettings);
+app.patch('/api/admin/settings', requireAdminSession, updateSettings);
 
 /**
  * GET /api/admin/packages
