@@ -98,12 +98,16 @@ const ENV_DEFAULT_AGENT_MARKUP_PERCENT = parseFloat(process.env.DEFAULT_AGENT_MA
 // to the environment defaults if nothing has been saved yet.
 function getPlatformMarkupPercent() {
   const stored = parseFloat(db.getSetting('platform_markup_percent'));
-  return Number.isNaN(stored) ? ENV_PLATFORM_MARKUP_PERCENT : stored;
+  // Use default (30%) if not set or if currently 0
+  if (Number.isNaN(stored) || stored === 0) return ENV_PLATFORM_MARKUP_PERCENT;
+  return stored;
 }
 
 function getDefaultAgentMarkupPercent() {
   const stored = parseFloat(db.getSetting('default_agent_markup_percent'));
-  return Number.isNaN(stored) ? ENV_DEFAULT_AGENT_MARKUP_PERCENT : stored;
+  // Use default (25%) if not set or if currently 0
+  if (Number.isNaN(stored) || stored === 0) return ENV_DEFAULT_AGENT_MARKUP_PERCENT;
+  return stored;
 }
 
 // Sane bounds so an agent can't set something absurd (0% = no profit, 100% = doubling the price)
