@@ -3,407 +3,534 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-<meta name="robots" content="noindex, nofollow">
 <title>DataFlow — Admin</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='24' fill='%2315151A'/><text x='50' y='68' font-size='58' text-anchor='middle' fill='%23FFCC08' font-family='Arial' font-weight='900'>D</text></svg>">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap');
 
   :root{
-    --bg: #FFFFFF;
-    --bg-alt: #F4F5FA;
-    --surface: #F7F8FC;
-    --surface-2: #ECEEF7;
-    --line: rgba(18,23,43,0.10);
-    --text: #12172B;
-    --text-dim: #6B7190;
-    --gold: #C98A0A;
-    --green: #1FA672;
-    --red: #C4293A;
+    --bg:#FFFFFF;
+    --surface:#FFFFFF;
+    --panel:#FAFAFC;
+    --ink:#15151A;
+    --text:#15151A;
+    --text-dim:#75757F;
+    --line:rgba(21,21,26,0.10);
+    --line-strong:rgba(21,21,26,0.22);
+    --yellow:#FFCC08;
+    --yellow-soft:rgba(255,204,8,0.16);
+    --yellow-deep:#B4790E;
+    --green:#0EA35B;
+    --green-soft:rgba(14,163,91,0.09);
+    --red:#E4032E;
+    --red-soft:rgba(228,3,46,0.08);
+    --blue:#3B6FE0;
   }
 
-  *{box-sizing:border-box; margin:0; padding:0;}
-  body{
-    background: var(--bg); color: var(--text); font-family:'Inter', sans-serif; line-height:1.5;
-  }
-  h1,h2,h3{ font-family:'Space Grotesk', sans-serif; letter-spacing:-0.02em; }
-  .mono{ font-family:'IBM Plex Mono', monospace; }
-  .wrap{ max-width:1080px; margin:0 auto; padding:0 24px; }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  body{ background:var(--bg); color:var(--text); font-family:'Inter', sans-serif; line-height:1.5; }
+  h1,h2,h3,.display{ font-family:'Baloo 2', sans-serif; letter-spacing:-0.01em; }
+  .mono{ font-family:'JetBrains Mono', monospace; }
+  button{ font-family:inherit; cursor:pointer; }
+  input,select{ font-family:inherit; }
 
-  nav{ background:#10152A; padding:18px 0; }
-  nav .wrap{ display:flex; align-items:center; justify-content:space-between; }
-  .brand{ color:#fff; font-weight:700; font-size:1.1rem; }
-  .brand span{ color:var(--green); }
-  #logoutBtn{
-    background:none; border:1px solid rgba(255,255,255,0.25); color:#fff;
-    padding:7px 14px; border-radius:8px; font-size:0.82rem; cursor:pointer; font-family:inherit; display:none;
+  .wrap{ max-width:980px; margin:0 auto; padding:0 20px; }
+
+  /* ---------- topbar ---------- */
+  .topbar-wrap{ padding-top:18px; }
+  .topbar{
+    background:var(--surface); border:1px solid var(--line); border-radius:20px;
+    padding:10px 12px 10px 14px; display:flex; align-items:center; justify-content:space-between;
+    box-shadow:0 6px 20px rgba(21,21,26,0.05);
   }
-  #refreshBtn{
-    background:none; border:1px solid rgba(255,255,255,0.25); color:#fff;
-    padding:7px 14px; border-radius:8px; font-size:0.82rem; cursor:pointer; font-family:inherit; display:none; margin-right:8px;
+  .topbar-brand{ display:flex; align-items:center; gap:9px; font-weight:700; font-size:1.02rem; }
+  .topbar-brand .chip{
+    width:30px; height:30px; border-radius:9px; background:var(--ink); color:var(--yellow);
+    display:flex; align-items:center; justify-content:center; font-family:'Baloo 2'; font-weight:800; font-size:1rem;
+  }
+  .admin-tag{
+    background:var(--ink); color:var(--yellow); font-size:0.7rem; font-weight:700; padding:3px 9px;
+    border-radius:100px; text-transform:uppercase; letter-spacing:0.05em;
+  }
+  .logout-btn{
+    background:transparent; border:1.5px solid var(--line-strong); color:var(--text);
+    border-radius:100px; padding:8px 16px; font-size:0.84rem; font-weight:600;
   }
 
-  main{ padding:48px 0 80px; }
-
-  /* ---------- login ---------- */
-  #loginScreen{ max-width:380px; margin:80px auto; }
-  #loginScreen h1{ font-size:1.6rem; margin-bottom:8px; }
-  #loginScreen p{ color:var(--text-dim); font-size:0.92rem; margin-bottom:28px; }
-  .field label{ font-size:0.86rem; color:var(--text-dim); display:block; margin-bottom:6px; }
-  .field input{
-    width:100%; background:var(--bg-alt); border:1px solid var(--line); color:var(--text);
-    padding:12px 14px; border-radius:8px; font-size:0.95rem;
+  /* ---------- login screen ---------- */
+  #loginScreen{ min-height:80vh; display:flex; align-items:center; justify-content:center; padding:20px; }
+  .login-card{
+    width:100%; max-width:360px; background:var(--surface); border:1px solid var(--line);
+    border-radius:20px; padding:30px; box-shadow:0 10px 30px rgba(21,21,26,0.08);
   }
-  .btn{
-    background:var(--green); color:#fff; font-weight:600; font-size:0.92rem;
-    padding:12px 20px; border-radius:9px; border:none; cursor:pointer; font-family:inherit;
+  .login-card h1{ font-size:1.5rem; }
+  .login-card p{ color:var(--text-dim); font-size:0.9rem; margin-top:6px; }
+  .field{ display:flex; flex-direction:column; gap:7px; margin-top:18px; }
+  .field label{ font-size:0.84rem; color:var(--text-dim); font-weight:600; }
+  .field input, .field select{
+    background:#F4F4F7; border:1.5px solid var(--line); color:var(--text);
+    padding:12px 14px; border-radius:12px; font-size:0.94rem;
   }
-  .btn:disabled{ opacity:0.6; cursor:default; }
-  .btn-block{ width:100%; margin-top:18px; }
-  .status-msg{ margin-top:14px; font-size:0.85rem; }
+  .btn-solid{
+    background:var(--yellow); color:var(--ink); border:none; border-radius:100px; padding:13px;
+    font-weight:700; font-size:0.94rem; width:100%; margin-top:20px;
+  }
+  .btn-solid:disabled{ opacity:0.55; cursor:not-allowed; }
+  .status-line{ margin-top:12px; font-size:0.86rem; color:var(--text-dim); min-height:1.2em; }
 
   /* ---------- dashboard ---------- */
-  #dashboard{ display:none; }
-  .stats-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:16px; margin-bottom:40px; }
+  #adminApp{ display:none; }
+
+  .section{ padding:36px 0 6px; }
+  .section h2{ font-size:1.3rem; font-weight:700; }
+  .section p.section-sub{ color:var(--text-dim); margin-top:4px; font-size:0.9rem; }
+
+  .stats-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:18px; }
+  @media (max-width:800px){ .stats-grid{ grid-template-columns:repeat(2,1fr); } }
   .stat-card{
-    background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:20px;
-    box-shadow:0 4px 20px rgba(18,23,43,0.05);
+    background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:16px 18px;
   }
-  .stat-card .num{ font-family:'IBM Plex Mono', monospace; font-size:1.5rem; font-weight:600; }
-  .stat-card .lbl{ color:var(--text-dim); font-size:0.8rem; margin-top:4px; }
+  .stat-card .lbl{ font-size:0.76rem; color:var(--text-dim); font-weight:600; }
+  .stat-card .val{ font-family:'Baloo 2'; font-weight:800; font-size:1.5rem; margin-top:4px; }
 
-  .panel{
-    background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:28px;
-    box-shadow:0 4px 20px rgba(18,23,43,0.05); margin-bottom:32px;
+  /* network tabs (reused pill style) */
+  .tab-row{ display:flex; gap:9px; margin-top:20px; flex-wrap:wrap; }
+  .tab{
+    padding:9px 18px; border-radius:100px; font-weight:700; font-size:0.88rem; cursor:pointer;
+    background:var(--surface); border:1.5px solid var(--line-strong); color:var(--text);
   }
-  .panel h2{ font-size:1.15rem; margin-bottom:6px; }
-  .panel .sub{ color:var(--text-dim); font-size:0.86rem; margin-bottom:22px; }
+  .tab.active{ background:var(--yellow); border-color:var(--yellow); }
 
-  .pricing-row{ display:flex; gap:20px; flex-wrap:wrap; align-items:flex-end; }
-  .pricing-field{ flex:1; min-width:180px; }
-  .pricing-field label{ font-size:0.84rem; color:var(--text-dim); display:block; margin-bottom:6px; }
-  .pricing-field input{
-    width:100%; background:var(--bg-alt); border:1px solid var(--line); color:var(--text);
-    padding:10px 12px; border-radius:8px; font-family:'IBM Plex Mono', monospace; font-size:0.95rem;
+  /* price table */
+  .price-list{ margin-top:16px; display:flex; flex-direction:column; gap:10px; }
+  .price-row{
+    display:flex; align-items:center; gap:14px; background:var(--panel); border:1px solid var(--line);
+    border-radius:14px; padding:12px 16px; flex-wrap:wrap;
   }
+  .price-row .cap{ font-family:'Baloo 2'; font-weight:700; font-size:1.05rem; min-width:64px; }
+  .price-row .cur{ color:var(--text-dim); font-size:0.82rem; }
+  .price-row input.price-input{
+    width:100px; background:var(--surface); border:1.5px solid var(--line-strong); border-radius:10px;
+    padding:8px 10px; font-size:0.92rem; font-weight:700; color:var(--yellow-deep);
+  }
+  .price-row .save-btn{
+    background:var(--ink); color:#fff; border:none; border-radius:100px; padding:8px 16px;
+    font-size:0.82rem; font-weight:700;
+  }
+  .price-row .save-btn:disabled{ opacity:0.5; }
+  .row-status{ font-size:0.78rem; color:var(--text-dim); flex-basis:100%; }
 
-  table{ width:100%; border-collapse:collapse; font-size:0.86rem; }
-  th{ text-align:left; color:var(--text-dim); font-weight:500; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.03em; padding:10px 12px; border-bottom:1px solid var(--line); }
-  td{ padding:12px; border-bottom:1px solid var(--line); }
-  tr:last-child td{ border-bottom:none; }
-  .table-scroll{ overflow-x:auto; }
-  .pill{ display:inline-block; padding:3px 9px; border-radius:100px; font-size:0.74rem; font-weight:600; }
-  .pill.delivered{ background:rgba(31,166,114,0.12); color:var(--green); }
-  .pill.pending, .pill.processing_delivery{ background:rgba(201,138,10,0.12); color:var(--gold); }
-  .pill.failed, .pill.payment_ok_delivery_failed{ background:rgba(196,41,58,0.12); color:var(--red); }
-  .empty-note{ color:var(--text-dim); font-size:0.88rem; padding:20px 0; text-align:center; }
+  /* agents */
+  .agent-search{
+    margin-top:16px; width:100%; max-width:320px; background:#F4F4F7; border:1.5px solid var(--line);
+    border-radius:100px; padding:11px 16px; font-size:0.9rem;
+  }
+  .agents-list{ margin-top:16px; display:flex; flex-direction:column; gap:10px; }
+  .agent-row{
+    background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:16px 18px;
+  }
+  .agent-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap; }
+  .agent-name{ font-weight:700; font-size:0.98rem; }
+  .agent-code{ color:var(--yellow-deep); font-size:0.8rem; font-weight:700; }
+  .agent-meta{ color:var(--text-dim); font-size:0.8rem; margin-top:2px; }
+  .agent-stats{ display:flex; gap:22px; margin-top:12px; flex-wrap:wrap; }
+  .agent-stats .lbl{ font-size:0.72rem; color:var(--text-dim); font-weight:600; }
+  .agent-stats .val{ font-family:'Baloo 2'; font-weight:700; font-size:1.05rem; }
+  .agent-actions{ display:flex; gap:10px; margin-top:14px; flex-wrap:wrap; align-items:center; }
+  .agent-actions input{
+    width:74px; background:var(--surface); border:1.5px solid var(--line-strong); border-radius:10px;
+    padding:8px 10px; font-size:0.86rem; font-weight:700;
+  }
+  .mini-btn{
+    background:var(--ink); color:#fff; border:none; border-radius:100px; padding:8px 16px;
+    font-size:0.8rem; font-weight:700;
+  }
+  .mini-btn.ghost{ background:transparent; border:1.5px solid var(--line-strong); color:var(--text); }
+  .status-pill{ font-size:0.72rem; font-weight:700; padding:3px 10px; border-radius:100px; }
+  .status-pill.active{ background:var(--green-soft); color:var(--green); }
+  .status-pill.suspended{ background:var(--red-soft); color:var(--red); }
+
+  footer{ padding:34px 0 44px; text-align:center; color:var(--text-dim); font-size:0.82rem; }
 </style>
 </head>
 <body>
 
-<nav>
-  <div class="wrap">
-    <div class="brand">DataFlow <span>Admin</span></div>
-    <div>
-      <button id="refreshBtn">Refresh</button>
-      <button id="logoutBtn">Log out</button>
-    </div>
+<div class="topbar-wrap wrap">
+  <div class="topbar">
+    <div class="topbar-brand"><div class="chip">D</div> DataFlow <span class="admin-tag">Admin</span></div>
+    <button class="logout-btn" id="logoutBtn" style="display:none;">Log out</button>
   </div>
-</nav>
+</div>
 
-<main class="wrap">
-
-  <div id="loginScreen">
-    <h1>Admin dashboard</h1>
-    <p>Enter your admin password to manage pricing and view business activity.</p>
+<div id="loginScreen">
+  <div class="login-card">
+    <h1>Admin sign in</h1>
+    <p>Restricted to DataFlow staff — controls pricing, agent accounts, and platform statistics.</p>
     <div class="field">
-      <label for="adminPassword">Password</label>
-      <input type="password" id="adminPassword" placeholder="Admin password" autocomplete="current-password">
+      <label for="adminPassword">Admin password</label>
+      <input type="password" id="adminPassword" placeholder="Enter admin password">
     </div>
-    <button id="loginBtn" class="btn btn-block">Log in</button>
-    <p id="loginStatus" class="status-msg"></p>
+    <button id="adminLoginBtn" class="btn-solid">Log in</button>
+    <p id="loginStatus" class="status-line"></p>
   </div>
+</div>
 
-  <div id="dashboard">
+<div id="adminApp" class="wrap">
+
+  <section class="section">
+    <h2>Overview</h2>
+    <p class="section-sub">Live totals across the whole platform.</p>
     <div class="stats-grid" id="statsGrid">
-      <div class="stat-card"><div class="num" id="statRevenue">—</div><div class="lbl">total revenue (GH₵)</div></div>
-      <div class="stat-card"><div class="num" id="statCost">—</div><div class="lbl">paid to provider (GH₵)</div></div>
-      <div class="stat-card"><div class="num" id="statAgentPayout">—</div><div class="lbl">paid to agents (GH₵)</div></div>
-      <div class="stat-card"><div class="num" id="statProfit" style="color:var(--green);">—</div><div class="lbl">your profit (GH₵)</div></div>
-      <div class="stat-card"><div class="num" id="statCount">—</div><div class="lbl">total orders</div></div>
+      <div class="stat-card"><div class="lbl">Total revenue</div><div class="val" id="statRevenue">—</div></div>
+      <div class="stat-card"><div class="lbl">Bundles sold</div><div class="val" id="statSales">—</div></div>
+      <div class="stat-card"><div class="lbl">Active agents</div><div class="val" id="statAgents">—</div></div>
+      <div class="stat-card"><div class="lbl">Sales today</div><div class="val" id="statToday">—</div></div>
     </div>
+  </section>
 
-    <div class="panel">
-      <h2>Pricing</h2>
-      <p class="sub">Changes take effect immediately on the next purchase — no redeploy needed.</p>
-      <div class="pricing-row">
-        <div class="pricing-field">
-          <label for="platformMarkupInput">Your platform markup (%) — applied to every sale</label>
-          <input type="number" id="platformMarkupInput" min="0" max="200" step="0.5">
-        </div>
-        <div class="pricing-field">
-          <label for="defaultAgentMarkupInput">Default markup for new agents (%)</label>
-          <input type="number" id="defaultAgentMarkupInput" min="0" max="100" step="0.5">
-        </div>
-        <button id="saveSettingsBtn" class="btn">Save changes</button>
-      </div>
-      <p id="settingsStatus" class="status-msg"></p>
+  <section class="section">
+    <h2>Prices</h2>
+    <p class="section-sub">Update the price of any bundle — changes apply to new purchases immediately.</p>
+    <div class="tab-row" id="priceNetTabs">
+      <div class="tab active" data-net="MTN">MTN</div>
+      <div class="tab" data-net="AirtelTigo">AirtelTigo</div>
+      <div class="tab" data-net="Telecel">Telecel</div>
     </div>
-
-    <div class="panel">
-      <h2>Agents</h2>
-      <p class="sub">Every registered agent, their own markup, and their current wallet balance.</p>
-      <div class="table-scroll">
-        <table id="agentsTable">
-          <thead>
-            <tr><th>Code</th><th>Name</th><th>Network</th><th>Markup</th><th>Wallet</th><th>Sales</th><th>Joined</th></tr>
-          </thead>
-          <tbody id="agentsBody"></tbody>
-        </table>
-        <p id="agentsEmpty" class="empty-note" style="display:none;">No agents registered yet.</p>
-      </div>
+    <div class="price-list" id="priceList">
+      <p class="status-line">Loading packages...</p>
     </div>
+  </section>
 
-    <div class="panel">
-      <h2>Recent purchases</h2>
-      <p class="sub">Latest orders across the whole platform.</p>
-      <div class="table-scroll">
-        <table id="purchasesTable">
-          <thead>
-            <tr><th>Reference</th><th>Network</th><th>Bundle</th><th>Amount</th><th>Agent</th><th>Status</th><th>When</th></tr>
-          </thead>
-          <tbody id="purchasesBody"></tbody>
-        </table>
-        <p id="purchasesEmpty" class="empty-note" style="display:none;">No purchases yet.</p>
-      </div>
+  <section class="section">
+    <h2>Agents</h2>
+    <p class="section-sub">Every registered agent, their markup, wallet balance, and sales.</p>
+    <input type="text" id="agentSearch" class="agent-search" placeholder="Search by name or agent code">
+    <div class="agents-list" id="agentsList">
+      <p class="status-line">Loading agents...</p>
     </div>
-  </div>
+  </section>
 
-</main>
+</div>
+
+<footer>DataFlow — internal admin panel</footer>
 
 <script>
-  // Same live backend as index.html. When the page is served from the
-  // Netlify site, the /api/* redirect proxy would also work, but we point
-  // straight at the backend so the page works from any origin.
-  const API_BASE = window.DATAFLOW_API_BASE || 'https://dataflow-backend-obbt.onrender.com';
+  // Point this at your live backend (same one the storefront talks to).
+  const API_BASE = 'https://dataflow-backend-obbt.onrender.com';
+
+  let adminToken = null; 
+  let allAgents = [];
+  let allPackages = [];
+  let currentNet = 'MTN';
 
   const loginScreen = document.getElementById('loginScreen');
-  const dashboard = document.getElementById('dashboard');
+  const adminApp = document.getElementById('adminApp');
   const logoutBtn = document.getElementById('logoutBtn');
-  const refreshBtn = document.getElementById('refreshBtn');
-  const loginBtn = document.getElementById('loginBtn');
   const loginStatus = document.getElementById('loginStatus');
-  const adminPasswordInput = document.getElementById('adminPassword');
 
-  // Session token kept in sessionStorage so a refresh doesn't log you out.
-  // It still disappears when the tab is closed, and the backend expires it
-  // after its own TTL anyway.
-  const TOKEN_KEY = 'dataflow_admin_token';
-  let adminToken = sessionStorage.getItem(TOKEN_KEY) || null;
+  function ghs(n){ return 'GH₵ ' + Number(n || 0).toFixed(2); }
 
-  const money = (v) => Number(v || 0).toFixed(2);
-  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({
-    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-  }[c]));
-
-  function showDashboard(){
-    loginScreen.style.display = 'none';
-    dashboard.style.display = 'block';
-    logoutBtn.style.display = 'inline-block';
-    refreshBtn.style.display = 'inline-block';
-    loadEverything();
-  }
-
-  function showLogin(){
-    adminToken = null;
-    sessionStorage.removeItem(TOKEN_KEY);
-    loginScreen.style.display = 'block';
-    dashboard.style.display = 'none';
-    logoutBtn.style.display = 'none';
-    refreshBtn.style.display = 'none';
-  }
-
-  async function adminFetch(path, options = {}){
-    const res = await fetch(`${API_BASE}${path}`, {
-      ...options,
-      headers: {
-        ...(options.headers || {}),
-        Authorization: `Bearer ${adminToken}`,
-      },
-    });
-    if (res.status === 401){
-      showLogin();
-      loginStatus.textContent = 'Session expired — please log in again.';
-      loginStatus.style.color = 'var(--red)';
-      throw new Error('unauthorized');
-    }
-    return res;
-  }
-
-  loginBtn.addEventListener('click', async () => {
-    const password = adminPasswordInput.value;
+  // ---------- login ----------
+  async function handleLogin() {
+    const password = document.getElementById('adminPassword').value;
+    const btn = document.getElementById('adminLoginBtn');
     if (!password){
-      loginStatus.textContent = 'Enter your password.';
+      loginStatus.textContent = 'Enter the admin password.';
       loginStatus.style.color = 'var(--red)';
       return;
     }
-
-    loginBtn.disabled = true;
-    loginStatus.textContent = 'Logging in...';
+    btn.disabled = true;
+    loginStatus.textContent = 'Signing in...';
     loginStatus.style.color = 'var(--text-dim)';
 
     try {
       const res = await fetch(`${API_BASE}/api/admin/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ password })
       });
       const data = await res.json();
-
       if (!res.ok){
         loginStatus.textContent = data.error || 'Login failed.';
         loginStatus.style.color = 'var(--red)';
+        btn.disabled = false;
         return;
       }
-
       adminToken = data.token;
-      sessionStorage.setItem(TOKEN_KEY, adminToken);
-      adminPasswordInput.value = '';
-      loginStatus.textContent = '';
-      showDashboard();
+      localStorage.setItem('dataflow_admin_token', adminToken);
+      loginScreen.style.display = 'none';
+      adminApp.style.display = 'block';
+      logoutBtn.style.display = 'inline-block';
+      loadEverything();
     } catch(err){
-      loginStatus.textContent = 'Could not reach the server. Please try again in a moment — the backend may be waking up.';
+      console.error('Login error:', err);
+      loginStatus.textContent = 'Could not reach the server. Check your connection.';
       loginStatus.style.color = 'var(--red)';
-    } finally {
-      loginBtn.disabled = false;
+      btn.disabled = false;
     }
-  });
-
-  adminPasswordInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') loginBtn.click();
-  });
-
-  logoutBtn.addEventListener('click', showLogin);
-  refreshBtn.addEventListener('click', () => loadEverything());
-
-  async function loadEverything(){
-    await Promise.all([loadStats(), loadSettings(), loadAgents(), loadPurchases()]);
   }
 
+  document.getElementById('adminLoginBtn').addEventListener('click', handleLogin);
+  document.getElementById('adminPassword').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') handleLogin();
+  });
+
+  // Check for existing session
+  const savedToken = localStorage.getItem('dataflow_admin_token');
+  if (savedToken) {
+    adminToken = savedToken;
+    loginScreen.style.display = 'none';
+    adminApp.style.display = 'block';
+    logoutBtn.style.display = 'inline-block';
+    loadEverything();
+  }
+
+  logoutBtn.addEventListener('click', () => {
+    adminToken = null;
+    localStorage.removeItem('dataflow_admin_token');
+    adminApp.style.display = 'none';
+    logoutBtn.style.display = 'none';
+    loginScreen.style.display = 'flex';
+    document.getElementById('adminPassword').value = '';
+    loginStatus.textContent = '';
+  });
+
+  function authHeaders(){
+    return { Authorization: `Bearer ${adminToken}`, 'Content-Type': 'application/json' };
+  }
+
+  function loadEverything(){
+    loadStats();
+    loadPackages();
+    loadAgents();
+  }
+
+  // ---------- stats ----------
   async function loadStats(){
     try {
-      const res = await adminFetch('/api/admin/stats');
+      const res = await fetch(`${API_BASE}/api/admin/stats`, { headers: authHeaders() });
       const data = await res.json();
-      document.getElementById('statRevenue').textContent = money(data.totalRevenue);
-      document.getElementById('statCost').textContent = money(data.totalCost);
-      document.getElementById('statAgentPayout').textContent = money(data.totalAgentPayout);
-      document.getElementById('statProfit').textContent = money(data.platformProfit);
-      document.getElementById('statCount').textContent = data.totalPurchases ?? 0;
-    } catch(err){ /* handled by adminFetch redirecting to login */ }
+      if (!res.ok){ if (res.status === 401) return logoutBtn.click(); return; }
+      document.getElementById('statRevenue').textContent = ghs(data.totalRevenue);
+      document.getElementById('statSales').textContent = data.totalSales ?? '—';
+      document.getElementById('statAgents').textContent = data.activeAgents ?? '—';
+      document.getElementById('statToday').textContent = data.salesToday ?? '—';
+    } catch(err){ /* leave placeholders */ }
   }
 
-  async function loadSettings(){
+  // ---------- prices ----------
+  document.querySelectorAll('#priceNetTabs .tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('#priceNetTabs .tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      currentNet = tab.dataset.net;
+      renderPackages();
+    });
+  });
+
+  async function loadPackages(){
     try {
-      const res = await adminFetch('/api/admin/settings');
+      const res = await fetch(`${API_BASE}/api/admin/packages`, { headers: authHeaders() });
       const data = await res.json();
-      document.getElementById('platformMarkupInput').value = data.platformMarkupPercent;
-      document.getElementById('defaultAgentMarkupInput').value = data.defaultAgentMarkupPercent;
-    } catch(err){}
-  }
-
-  document.getElementById('saveSettingsBtn').addEventListener('click', async () => {
-    const btn = document.getElementById('saveSettingsBtn');
-    const statusEl = document.getElementById('settingsStatus');
-    const platformMarkupPercent = document.getElementById('platformMarkupInput').value;
-    const defaultAgentMarkupPercent = document.getElementById('defaultAgentMarkupInput').value;
-
-    btn.disabled = true;
-    statusEl.textContent = 'Saving...';
-    statusEl.style.color = 'var(--text-dim)';
-
-    try {
-      const res = await adminFetch('/api/admin/settings', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ platformMarkupPercent, defaultAgentMarkupPercent }),
-      });
-      const data = await res.json();
-
-      if (!res.ok){
-        statusEl.textContent = data.error || 'Could not save.';
-        statusEl.style.color = 'var(--red)';
+      if (!res.ok){ if (res.status === 401) return logoutBtn.click();
+        document.getElementById('priceList').innerHTML = `<p class="status-line" style="color:var(--red);">${data.error || 'Could not load packages.'}</p>`;
         return;
       }
-
-      statusEl.textContent = `✓ Saved — platform markup ${data.platformMarkupPercent}%, new agent default ${data.defaultAgentMarkupPercent}%.`;
-      statusEl.style.color = 'var(--green)';
+      allPackages = data.packages || [];
+      renderPackages();
     } catch(err){
-      statusEl.textContent = 'Could not reach the server.';
-      statusEl.style.color = 'var(--red)';
+      document.getElementById('priceList').innerHTML = '<p class="status-line" style="color:var(--red);">Could not reach the server.</p>';
+    }
+  }
+
+  function renderPackages(){
+    const list = document.getElementById('priceList');
+    const forNetwork = allPackages.filter(p => p.network === currentNet);
+    if (!forNetwork.length){
+      list.innerHTML = '<p class="status-line">No packages for this network yet.</p>';
+      return;
+    }
+    list.innerHTML = forNetwork.map(p => `
+      <div class="price-row" data-id="${p.id}">
+        <span class="cap">${p.capacity}</span>
+        <span class="cur">GH₵</span>
+        <input type="number" class="price-input" step="0.01" min="0" value="${p.price.toFixed(2)}">
+        <button class="save-btn">Save</button>
+        <span class="row-status"></span>
+      </div>
+    `).join('');
+
+    list.querySelectorAll('.price-row').forEach(row => {
+      row.querySelector('.save-btn').addEventListener('click', () => savePrice(row));
+    });
+  }
+
+  async function savePrice(row){
+    const id = row.dataset.id;
+    const input = row.querySelector('.price-input');
+    const btn = row.querySelector('.save-btn');
+    const rowStatus = row.querySelector('.row-status');
+    const price = parseFloat(input.value);
+
+    if (isNaN(price) || price < 0){
+      rowStatus.textContent = 'Enter a valid price.';
+      rowStatus.style.color = 'var(--red)';
+      return;
+    }
+
+    btn.disabled = true;
+    rowStatus.textContent = 'Saving...';
+    rowStatus.style.color = 'var(--text-dim)';
+
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/packages/${id}`, {
+        method: 'PATCH', headers: authHeaders(), body: JSON.stringify({ price })
+      });
+      const data = await res.json();
+      if (!res.ok){
+        if (res.status === 401) return logoutBtn.click();
+        rowStatus.textContent = data.error || 'Could not save.';
+        rowStatus.style.color = 'var(--red)';
+        return;
+      }
+      rowStatus.textContent = '✓ Saved';
+      rowStatus.style.color = 'var(--green)';
+    } catch(err){
+      rowStatus.textContent = 'Could not reach the server.';
+      rowStatus.style.color = 'var(--red)';
     } finally {
       btn.disabled = false;
     }
-  });
+  }
+
+  // ---------- agents ----------
+  document.getElementById('agentSearch').addEventListener('input', renderAgents);
 
   async function loadAgents(){
     try {
-      const res = await adminFetch('/api/admin/agents');
+      const res = await fetch(`${API_BASE}/api/admin/agents`, { headers: authHeaders() });
       const data = await res.json();
-      const body = document.getElementById('agentsBody');
-      const empty = document.getElementById('agentsEmpty');
-      const agents = data.agents || [];
-
-      if (!agents.length){
-        body.innerHTML = '';
-        empty.style.display = 'block';
+      if (!res.ok){ if (res.status === 401) return logoutBtn.click();
+        document.getElementById('agentsList').innerHTML = `<p class="status-line" style="color:var(--red);">${data.error || 'Could not load agents.'}</p>`;
         return;
       }
-      empty.style.display = 'none';
-
-      body.innerHTML = agents.map(a => `
-        <tr>
-          <td class="mono">${esc(a.referralCode)}</td>
-          <td>${esc(a.name)}</td>
-          <td>${esc(a.network)}</td>
-          <td class="mono">${esc(a.markupPercent)}%</td>
-          <td class="mono">GH₵ ${money(a.walletBalance)}</td>
-          <td>${a.totalSales ?? 0}</td>
-          <td>${a.createdAt ? new Date(a.createdAt).toLocaleDateString() : '—'}</td>
-        </tr>
-      `).join('');
-    } catch(err){}
+      allAgents = data.agents || [];
+      renderAgents();
+    } catch(err){
+      document.getElementById('agentsList').innerHTML = '<p class="status-line" style="color:var(--red);">Could not reach the server.</p>';
+    }
   }
 
-  async function loadPurchases(){
+  function renderAgents(){
+    const q = document.getElementById('agentSearch').value.trim().toLowerCase();
+    const list = document.getElementById('agentsList');
+    const filtered = allAgents.filter(a =>
+      !q || a.name.toLowerCase().includes(q) || a.referralCode.toLowerCase().includes(q)
+    );
+
+    if (!filtered.length){
+      list.innerHTML = '<p class="status-line">No agents match.</p>';
+      return;
+    }
+
+    list.innerHTML = filtered.map(a => `
+      <div class="agent-row" data-code="${a.referralCode}">
+        <div class="agent-top">
+          <div>
+            <span class="agent-name">${a.name}</span> ·
+            <span class="agent-code mono">${a.referralCode}</span>
+            <div class="agent-meta">${a.phone} · ${a.network}</div>
+          </div>
+          <span class="status-pill ${a.status === 'suspended' ? 'suspended' : 'active'}">${a.status === 'suspended' ? 'Suspended' : 'Active'}</span>
+        </div>
+        <div class="agent-stats">
+          <div><div class="lbl">Wallet</div><div class="val">${ghs(a.walletBalance)}</div></div>
+          <div><div class="lbl">Bundles sold</div><div class="val">${a.totalSales}</div></div>
+          <div><div class="lbl">Markup</div><div class="val">${a.markupPercent}%</div></div>
+        </div>
+        <div class="agent-actions">
+          <input type="number" class="markup-input" min="0" max="100" step="1" value="${a.markupPercent}">
+          <button class="mini-btn save-markup">Save markup</button>
+          <button class="mini-btn ghost toggle-status">${a.status === 'suspended' ? 'Reactivate' : 'Suspend'}</button>
+          <span class="row-status" style="font-size:0.78rem; color:var(--text-dim);"></span>
+        </div>
+      </div>
+    `).join('');
+
+    list.querySelectorAll('.agent-row').forEach(row => {
+      const code = row.dataset.code;
+      row.querySelector('.save-markup').addEventListener('click', () => saveMarkup(row, code));
+      row.querySelector('.toggle-status').addEventListener('click', () => toggleStatus(row, code));
+    });
+  }
+
+  async function saveMarkup(row, code){
+    const input = row.querySelector('.markup-input');
+    const btn = row.querySelector('.save-markup');
+    const rowStatus = row.querySelector('.row-status');
+    const markupPercent = parseFloat(input.value);
+
+    if (isNaN(markupPercent) || markupPercent < 0 || markupPercent > 100){
+      rowStatus.textContent = 'Enter 0–100.';
+      rowStatus.style.color = 'var(--red)';
+      return;
+    }
+
+    btn.disabled = true;
+    rowStatus.textContent = 'Saving...';
+    rowStatus.style.color = 'var(--text-dim)';
+
     try {
-      const res = await adminFetch('/api/admin/purchases?limit=50');
+      const res = await fetch(`${API_BASE}/api/admin/agents/${code}`, {
+        method: 'PATCH', headers: authHeaders(), body: JSON.stringify({ markupPercent })
+      });
       const data = await res.json();
-      const body = document.getElementById('purchasesBody');
-      const empty = document.getElementById('purchasesEmpty');
-      const purchases = data.purchases || [];
-
-      if (!purchases.length){
-        body.innerHTML = '';
-        empty.style.display = 'block';
+      if (!res.ok){
+        if (res.status === 401) return logoutBtn.click();
+        rowStatus.textContent = data.error || 'Could not save.';
+        rowStatus.style.color = 'var(--red)';
         return;
       }
-      empty.style.display = 'none';
-
-      body.innerHTML = purchases.map(p => `
-        <tr>
-          <td class="mono">${esc(String(p.reference || '').slice(0, 14))}…</td>
-          <td>${esc(p.network)}</td>
-          <td>${esc(p.capacity)}</td>
-          <td class="mono">GH₵ ${money(p.amount)}</td>
-          <td>${p.ref ? `<span class="mono">${esc(p.ref)}</span>` : '<span style="color:var(--text-dim);">direct</span>'}</td>
-          <td><span class="pill ${esc(p.status)}">${esc(String(p.status || '').replace(/_/g, ' '))}</span></td>
-          <td>${p.createdAt ? new Date(p.createdAt).toLocaleString() : '—'}</td>
-        </tr>
-      `).join('');
-    } catch(err){}
+      rowStatus.textContent = '✓ Saved';
+      rowStatus.style.color = 'var(--green)';
+    } catch(err){
+      rowStatus.textContent = 'Could not reach the server.';
+      rowStatus.style.color = 'var(--red)';
+    } finally {
+      btn.disabled = false;
+    }
   }
 
-  // Auto-resume the session if a token is still present after a refresh.
-  if (adminToken) showDashboard();
+  async function toggleStatus(row, code){
+    const btn = row.querySelector('.toggle-status');
+    const rowStatus = row.querySelector('.row-status');
+    const agent = allAgents.find(a => a.referralCode === code);
+    const nextStatus = agent && agent.status === 'suspended' ? 'active' : 'suspended';
+
+    btn.disabled = true;
+    rowStatus.textContent = 'Updating...';
+    rowStatus.style.color = 'var(--text-dim)';
+
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/agents/${code}`, {
+        method: 'PATCH', headers: authHeaders(), body: JSON.stringify({ status: nextStatus })
+      });
+      const data = await res.json();
+      if (!res.ok){
+        if (res.status === 401) return logoutBtn.click();
+        rowStatus.textContent = data.error || 'Could not update.';
+        rowStatus.style.color = 'var(--red)';
+        return;
+      }
+      if (agent) agent.status = nextStatus;
+      renderAgents();
+    } catch(err){
+      rowStatus.textContent = 'Could not reach the server.';
+      rowStatus.style.color = 'var(--red)';
+    } finally {
+      btn.disabled = false;
+    }
+  }
 </script>
 
 </body>

@@ -22,6 +22,7 @@ db.exec(`
     password_hash TEXT NOT NULL,
     password_salt TEXT NOT NULL,
     paystack_recipient_code TEXT,
+    status TEXT NOT NULL DEFAULT 'active',
     created_at TEXT NOT NULL
   );
 
@@ -64,6 +65,21 @@ db.exec(`
   );
 `);
 
+// --- Migrations ---
+const migrations = [
+  "ALTER TABLE agents ADD COLUMN status TEXT NOT NULL DEFAULT 'active'",
+  "ALTER TABLE purchases ADD COLUMN payment_phone TEXT",
+  "ALTER TABLE purchases ADD COLUMN otp_code TEXT"
+];
+
+migrations.forEach(sql => {
+  try {
+    db.exec(sql);
+  } catch (e) {
+    // Column likely already exists
+  }
+});
+
 // ---------- settings ----------
 // Simple key/value store so the admin dashboard can change pricing at
 // runtime without a redeploy. Values are stored as strings.
@@ -100,6 +116,7 @@ function toAgentObject(row) {
     passwordHash: row.password_hash,
     passwordSalt: row.password_salt,
     paystackRecipientCode: row.paystack_recipient_code,
+    status: row.status,
     createdAt: row.created_at,
   };
 }
@@ -113,6 +130,7 @@ const stmts = {
   getAgentByCode: db.prepare('SELECT * FROM agents WHERE referral_code = ?'),
   getAgentByPhone: db.prepare('SELECT * FROM agents WHERE phone = ?'),
   updateMarkup: db.prepare('UPDATE agents SET markup_percent = ? WHERE referral_code = ?'),
+  updateStatus: db.prepare('UPDATE agents SET status = ? WHERE referral_code = ?'),
   creditWallet: db.prepare(`
     UPDATE agents SET wallet_balance = wallet_balance + ?, total_sales = total_sales + 1
     WHERE referral_code = ?
@@ -137,6 +155,10 @@ function getAgentByPhone(phone) {
 
 function updateAgentMarkup(code, markupPercent) {
   stmts.updateMarkup.run(markupPercent, code);
+}
+
+function updateAgentStatus(code, status) {
+  stmts.updateStatus.run(status, code);
 }
 
 function creditAgentWallet(code, amount) {
@@ -290,5 +312,5 @@ module.exports = {
   createSessionRow, getSession, deleteSession,
   createWithdrawal, setWithdrawalStatus, getWithdrawalByTransferCode,
   getAllAgents, getAllPurchases, getRecentPurchases,
-  getSetting, setSetting,
+  getSetting, setSetting, updateAgentStatus,
 };

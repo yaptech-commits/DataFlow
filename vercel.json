@@ -1,0 +1,9 @@
+{
+  "version": 2,
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "routes": [
+    { "src": "/admin", "dest": "/admin.html" },
+    { "src": "/(.*)", "dest": "/index.html" }
+  ]
+}

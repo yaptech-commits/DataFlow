@@ -18,7 +18,23 @@ app.use(express.json());
 app.use(express.static('public'));
 
 const allowedOrigin = process.env.ALLOWED_ORIGIN || '*';
-app.use(cors({ origin: allowedOrigin }));
+const allowedOrigins = [
+  allowedOrigin,
+  'https://data-flow-black.vercel.app',
+  'https://data-flow-admin.vercel.app',
+  'https://dataflow-gh.netlify.app'
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes('*')) {
+      return callback(null, true);
+    }
+    return callback(new Error('The CORS policy for this site does not allow access from the specified Origin.'), false);
+  }
+}));
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
 const PAYSTACK_BASE = 'https://api.paystack.co';
@@ -95,12 +111,12 @@ const AGENT_MARKUP_MIN = 0;
 const AGENT_MARKUP_MAX = 100;
 
 // --- Admin authentication ---
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Gist_zone@blogger1';
 const ADMIN_SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+let adminSessions = {};
 
 function createAdminSession() {
   const token = crypto.randomBytes(24).toString('hex');
-  // Store in memory for simplicity; in production, use a persistent store
   adminSessions[token] = Date.now() + ADMIN_SESSION_TTL_MS;
   return token;
 }
@@ -114,7 +130,18 @@ function verifyAdminSession(token) {
   return true;
 }
 
-let adminSessions = {};
+/**
+ * Verifies the admin session token.
+ */
+function requireAdminSession(req, res, next) {
+  const authHeader = req.headers.authorization || '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  
+  if (!verifyAdminSession(token)) {
+    return res.status(401).json({ error: 'Admin access required. Please log in.' });
+  }
+  next();
+}
 
 function generateReferralCode(name) {
   const base = name.replace(/[^a-zA-Z]/g, '').slice(0, 5).toUpperCase() || 'AGENT';
@@ -189,10 +216,25 @@ const PACKAGES_CACHE_MS = 5 * 60 * 1000; // 5 minutes
 
 async function getPackages() {
   const isStale = Date.now() - packagesCache.fetchedAt > PACKAGES_CACHE_MS;
-  if (!isStale && packagesCache.data.length) return packagesCache.data;
+  if (!isStale && packagesCache.data.length) {
+    // Apply overrides even to cached data
+    return packagesCache.data.map(p => {
+      const id = `${p.network}-${p.capacity}`.toLowerCase().replace(/\s+/g, '-');
+      const override = db.getSetting(`price_override_${id}`);
+      if (override) p.price = parseFloat(override);
+      return p;
+    });
+  }
 
   const { data } = await icekash.get('/packages');
-  packagesCache = { data: data.packages, fetchedAt: Date.now() };
+  const packages = data.packages.map(p => {
+    const id = `${p.network}-${p.capacity}`.toLowerCase().replace(/\s+/g, '-');
+    const override = db.getSetting(`price_override_${id}`);
+    if (override) p.price = parseFloat(override);
+    return p;
+  });
+
+  packagesCache = { data: packages, fetchedAt: Date.now() };
   return packagesCache.data;
 }
 
@@ -401,6 +443,10 @@ app.post('/api/agents/login', authLimiter, (req, res) => {
 
   if (!agent || !password) return invalid();
 
+  if (agent.status === 'suspended') {
+    return res.status(403).json({ error: 'This agent account is suspended.' });
+  }
+
   const attemptHash = hashPassword(password, agent.passwordSalt);
   const valid = crypto.timingSafeEqual(
     Buffer.from(attemptHash, 'hex'),
@@ -498,6 +544,173 @@ app.post('/api/agents/:code/withdraw', withdrawLimiter, async (req, res) => {
   }
 });
 
+// --- Admin Routes ---
+
+/**
+ * POST /api/admin/login
+ * Verifies admin password, returns a session token.
+ */
+app.post('/api/admin/login', authLimiter, (req, res) => {
+  const { password } = req.body;
+  if (!password) return res.status(400).json({ error: 'Enter your password.' });
+  if (password !== ADMIN_PASSWORD) return res.status(401).json({ error: 'Incorrect password.' });
+  
+  const token = createAdminSession();
+  res.json({ token });
+});
+
+/**
+ * GET /api/admin/stats
+ * Returns platform-wide statistics.
+ */
+app.get('/api/admin/stats', requireAdminSession, (req, res) => {
+  try {
+    const agents = db.getAllAgents();
+    const purchases = db.getAllPurchases();
+    const delivered = purchases.filter(p => p.status === 'delivered' || p.status.includes('delivery'));
+    
+    const totalRevenue = delivered.reduce((sum, p) => sum + p.amount, 0);
+    const totalCost = delivered.reduce((sum, p) => sum + p.costPrice, 0);
+    const totalAgentPayout = delivered.reduce((sum, p) => sum + p.agentMarkup, 0);
+    const platformProfit = totalRevenue - totalCost - totalAgentPayout;
+    
+    const activeAgents = agents.filter(a => a.status !== 'suspended').length;
+    const today = new Date().toISOString().split('T')[0];
+    const salesToday = delivered.filter(p => p.createdAt.startsWith(today)).length;
+    
+    res.json({
+      totalRevenue: Number(totalRevenue.toFixed(2)),
+      totalCost: Number(totalCost.toFixed(2)),
+      totalAgentPayout: Number(totalAgentPayout.toFixed(2)),
+      platformProfit: Number(platformProfit.toFixed(2)),
+      totalSales: delivered.length, // Matching the dashboard's "Bundles sold"
+      totalPurchases: purchases.length,
+      activeAgents,
+      salesToday
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Could not load stats.' });
+  }
+});
+
+/**
+ * GET /api/admin/settings
+ * Returns global platform settings.
+ */
+app.get('/api/admin/settings', requireAdminSession, (req, res) => {
+  res.json({
+    platformMarkupPercent: getPlatformMarkupPercent(),
+    defaultAgentMarkupPercent: getDefaultAgentMarkupPercent()
+  });
+});
+
+/**
+ * POST /api/admin/settings
+ * Updates global platform settings and optionally applies them to all agents.
+ */
+app.post('/api/admin/settings', requireAdminSession, (req, res) => {
+  const { platformMarkupPercent, defaultAgentMarkupPercent, applyToAllAgents } = req.body;
+
+  if (typeof platformMarkupPercent === 'number') {
+    db.setSetting('platform_markup_percent', platformMarkupPercent);
+  }
+
+  if (typeof defaultAgentMarkupPercent === 'number') {
+    db.setSetting('default_agent_markup_percent', defaultAgentMarkupPercent);
+    
+    if (applyToAllAgents) {
+      const agents = db.getAllAgents();
+      agents.forEach(agent => {
+        db.updateAgentMarkup(agent.referralCode, defaultAgentMarkupPercent);
+      });
+    }
+  }
+
+  res.json({
+    platformMarkupPercent: getPlatformMarkupPercent(),
+    defaultAgentMarkupPercent: getDefaultAgentMarkupPercent(),
+    message: 'Settings updated successfully.'
+  });
+});
+
+/**
+ * GET /api/admin/packages
+ * Returns the list of all packages.
+ */
+app.get('/api/admin/packages', requireAdminSession, async (req, res) => {
+  try {
+    const rawPackages = await getPackages();
+    const packages = rawPackages.map(p => ({
+      id: `${p.network}-${p.capacity}`.toLowerCase().replace(/\s+/g, '-'),
+      network: p.network,
+      capacity: p.capacity,
+      price: p.price
+    }));
+    res.json({ 
+      packages,
+      platformMarkupPercent: getPlatformMarkupPercent()
+    });
+  } catch (err) {
+    res.status(502).json({ error: 'Could not fetch packages from provider.' });
+  }
+});
+
+/**
+ * GET /api/admin/agents
+ * Returns the list of all agents for management.
+ */
+app.get('/api/admin/agents', requireAdminSession, (req, res) => {
+  const agents = db.getAllAgents().map(sanitizeAgent);
+  res.json({ agents });
+});
+
+/**
+ * PATCH /api/admin/agents/:referralCode
+ * Updates an agent's markup or status.
+ */
+app.patch('/api/admin/agents/:referralCode', requireAdminSession, (req, res) => {
+  const { referralCode } = req.params;
+  const { markupPercent, status } = req.body;
+  
+  const agent = db.getAgentByCode(referralCode);
+  if (!agent) return res.status(404).json({ error: 'Agent not found.' });
+  
+  if (markupPercent !== undefined) {
+    const parsed = parseFloat(markupPercent);
+    if (Number.isNaN(parsed) || parsed < 0 || parsed > 100) {
+      return res.status(400).json({ error: 'Markup must be between 0 and 100.' });
+    }
+    db.updateAgentMarkup(referralCode, parsed);
+    agent.markupPercent = parsed;
+  }
+  
+  if (status !== undefined) {
+    if (status !== 'active' && status !== 'suspended') {
+      return res.status(400).json({ error: 'Status must be active or suspended.' });
+    }
+    db.updateAgentStatus(referralCode, status);
+    agent.status = status;
+  }
+  
+  res.json(sanitizeAgent(agent));
+});
+
+/**
+ * GET /api/admin/purchases
+ * Returns recent orders.
+ */
+app.get('/api/admin/purchases', requireAdminSession, (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 50;
+    const purchases = db.getRecentPurchases(limit);
+    res.json({ purchases });
+  } catch (err) {
+    res.status(500).json({ error: 'Could not load purchases.' });
+  }
+});
+
+// (Duplicate settings endpoints removed - reconciled above)
+
 /**
  * Lets the frontend fetch the current package list with prices already
  * computed for whoever's asking: a plain visitor sees cost + your platform
@@ -554,6 +767,9 @@ app.post('/api/purchase', purchaseLimiter, async (req, res) => {
     let agent = null;
     if (ref) {
       agent = db.getAgentByCode(String(ref)) || null;
+      if (agent && agent.status === 'suspended') {
+        agent = null; // Fallback to no-referral pricing for suspended agents
+      }
     }
 
     const pricing = computePricing(pkg.price, agent);
@@ -596,6 +812,10 @@ app.post('/api/purchase', purchaseLimiter, async (req, res) => {
       if (network === 'MTN') {
         finalInstructions += ' If no prompt appears, dial *170#, go to Wallet > My Approvals.';
       }
+    } else if (status === 'success') {
+      // Rare but possible for some test cards or specific flows
+      await deliverBundle(db.getPurchase(reference), reference);
+      finalInstructions = 'Payment successful! Delivering your data...';
     } else if (!finalInstructions) {
       finalInstructions = 'Processing payment...';
     }
@@ -603,7 +823,7 @@ app.post('/api/purchase', purchaseLimiter, async (req, res) => {
     res.json({
       reference,
       amount: amountCedis,
-      status: (status === 'send_otp' || status === 'otp') ? 'otp_required' : status,
+      status: (status === 'send_otp' || status === 'otp') ? 'otp_required' : (status === 'success' ? 'processing_delivery' : status),
       instructions: finalInstructions,
     });
   } catch (err) {
@@ -612,14 +832,40 @@ app.post('/api/purchase', purchaseLimiter, async (req, res) => {
   }
 });
 
-/**
- * Step 2: Frontend polls this every few seconds until status is no longer "pending".
- */
-app.get('/api/purchase/:reference', async (req, res) => {
-  const record = db.getPurchase(req.params.reference);
-  if (!record) return res.status(404).json({ error: 'Unknown reference' });
-  res.json(record);
-});
+  /**
+   * Step 2: Frontend polls this every few seconds until status is no longer "pending".
+   * We also do a quick check against Paystack's API to see if the status has
+   * changed, in case the webhook is delayed.
+   */
+  app.get('/api/purchase/:reference', async (req, res) => {
+    const reference = req.params.reference;
+    let record = db.getPurchase(reference);
+    if (!record) return res.status(404).json({ error: 'Unknown reference' });
+
+    // If the record is still pending, double-check with Paystack to be safe
+    if (record.status === 'pending') {
+      try {
+        const { data } = await axios.get(`${PAYSTACK_BASE}/transaction/verify/${reference}`, {
+          headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` }
+        });
+
+        if (data.data.status === 'success') {
+          // Sync status and trigger delivery if it hasn't happened yet
+          db.setPurchaseStatus(reference, 'processing_delivery');
+          record = db.getPurchase(reference); // Refresh record
+          await deliverBundle(record, reference);
+        } else if (data.data.status === 'failed') {
+          db.setPurchaseStatus(reference, 'failed');
+          record = db.getPurchase(reference); // Refresh record
+        }
+      } catch (err) {
+        // Verification failed, just return the local record
+        console.error('Paystack verification failed during polling:', err.message);
+      }
+    }
+
+    res.json(record);
+  });
 
 /**
  * Step 2b: Frontend submits the OTP code that Paystack sent to the customer's phone.
@@ -750,161 +996,7 @@ app.post('/api/webhook/paystack', async (req, res) => {
   res.sendStatus(200);
 });
 
-// --- Admin dashboard endpoints ---
 
-/**
- * Admin login — verifies admin password, returns a session token.
- */
-app.post('/api/admin/login', authLimiter, (req, res) => {
-  const { password } = req.body;
-
-  if (!password) {
-    return res.status(400).json({ error: 'Enter your password.' });
-  }
-
-  if (password !== ADMIN_PASSWORD) {
-    return res.status(401).json({ error: 'Incorrect password.' });
-  }
-
-  const token = createAdminSession();
-  res.json({ token });
-});
-
-/**
- * Verify admin session middleware.
- */
-function requireAdminSession(req, res) {
-  const authHeader = req.headers.authorization || '';
-  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
-
-  if (!verifyAdminSession(token)) {
-    res.status(401).json({ error: 'Please log in to access this account.' });
-    return null;
-  }
-
-  return token;
-}
-
-/**
- * Admin dashboard stats — revenue, cost, profit, order count.
- */
-app.get('/api/admin/stats', (req, res) => {
-  if (!requireAdminSession(req, res)) return;
-
-  try {
-    // Get all purchases
-    const purchases = db.getAllPurchases();
-
-    let totalRevenue = 0;
-    let totalCost = 0;
-    let totalAgentPayout = 0;
-
-    purchases.forEach(p => {
-      if (p.status === 'delivered' || p.status.includes('delivery')) {
-        totalRevenue += p.amount;
-        totalCost += p.costPrice;
-        totalAgentPayout += p.agentMarkup;
-      }
-    });
-
-    const platformProfit = totalRevenue - totalCost - totalAgentPayout;
-
-    res.json({
-      totalRevenue: Number(totalRevenue.toFixed(2)),
-      totalCost: Number(totalCost.toFixed(2)),
-      totalAgentPayout: Number(totalAgentPayout.toFixed(2)),
-      platformProfit: Number(platformProfit.toFixed(2)),
-      totalPurchases: purchases.length,
-    });
-  } catch (err) {
-    console.error('Stats error:', err.message);
-    res.status(500).json({ error: 'Could not load stats.' });
-  }
-});
-
-/**
- * Admin settings — platform markup and default agent markup.
- */
-app.get('/api/admin/settings', (req, res) => {
-  if (!requireAdminSession(req, res)) return;
-
-  res.json({
-    platformMarkupPercent: getPlatformMarkupPercent(),
-    defaultAgentMarkupPercent: getDefaultAgentMarkupPercent(),
-  });
-});
-
-/**
- * Update admin settings.
- */
-app.patch('/api/admin/settings', (req, res) => {
-  if (!requireAdminSession(req, res)) return;
-
-  const { platformMarkupPercent, defaultAgentMarkupPercent } = req.body;
-
-  const platformMarkup = parseFloat(platformMarkupPercent);
-  const defaultAgentMarkup = parseFloat(defaultAgentMarkupPercent);
-
-  if (Number.isNaN(platformMarkup) || platformMarkup < 0 || platformMarkup > 200) {
-    return res.status(400).json({ error: 'Platform markup must be between 0 and 200%' });
-  }
-
-  if (Number.isNaN(defaultAgentMarkup) || defaultAgentMarkup < 0 || defaultAgentMarkup > 100) {
-    return res.status(400).json({ error: 'Default agent markup must be between 0 and 100%' });
-  }
-
-  // Persist so the change survives restarts and takes effect immediately —
-  // both the packages list and purchase pricing read the live value.
-  db.setSetting('platform_markup_percent', platformMarkup);
-  db.setSetting('default_agent_markup_percent', defaultAgentMarkup);
-
-  res.json({
-    platformMarkupPercent: platformMarkup,
-    defaultAgentMarkupPercent: defaultAgentMarkup,
-  });
-});
-
-/**
- * Admin agents list — all registered agents with their stats.
- */
-app.get('/api/admin/agents', (req, res) => {
-  if (!requireAdminSession(req, res)) return;
-
-  try {
-    const agents = db.getAllAgents();
-    const sanitized = agents.map(a => ({
-      referralCode: a.referralCode,
-      name: a.name,
-      network: a.network,
-      markupPercent: a.markupPercent,
-      walletBalance: a.walletBalance,
-      totalSales: a.totalSales,
-      createdAt: a.createdAt,
-    }));
-
-    res.json({ agents: sanitized });
-  } catch (err) {
-    console.error('Agents list error:', err.message);
-    res.status(500).json({ error: 'Could not load agents.' });
-  }
-});
-
-/**
- * Admin purchases list — recent orders with optional limit.
- */
-app.get('/api/admin/purchases', (req, res) => {
-  if (!requireAdminSession(req, res)) return;
-
-  try {
-    const limit = parseInt(req.query.limit) || 50;
-    const purchases = db.getRecentPurchases(limit);
-
-    res.json({ purchases });
-  } catch (err) {
-    console.error('Purchases list error:', err.message);
-    res.status(500).json({ error: 'Could not load purchases.' });
-  }
-});
 
 app.get('/health', (req, res) => res.json({ ok: true }));
 
