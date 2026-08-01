@@ -82,6 +82,21 @@ migrations.forEach(sql => {
   }
 });
 
+// Initialize default settings if they don't exist
+const initializeSettings = () => {
+  const platformMarkupExists = db.prepare('SELECT value FROM settings WHERE key = ?').get('platform_markup_percent');
+  if (!platformMarkupExists) {
+    db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run('platform_markup_percent', '30');
+  }
+  
+  const agentMarkupExists = db.prepare('SELECT value FROM settings WHERE key = ?').get('default_agent_markup_percent');
+  if (!agentMarkupExists) {
+    db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run('default_agent_markup_percent', '25');
+  }
+};
+
+initializeSettings();
+
 // ---------- settings ----------
 // Simple key/value store so the admin dashboard can change pricing at
 // runtime without a redeploy. Values are stored as strings.
