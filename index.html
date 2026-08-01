@@ -345,11 +345,7 @@
 
     <!-- Manual Verification Section -->
     <div id="manualVerificationSection" style="display:none; flex-direction:column; gap:7px; margin-top:16px; border-top:1px solid var(--line); padding-top:16px;">
-      <label for="paymentNumberInput" style="font-size:0.8rem; font-weight:600; color:var(--text-dim);">Payment Number (Transaction ID)</label>
-      <div style="display:flex; gap:10px;">
-        <input type="text" id="paymentNumberInput" placeholder="Enter ID" style="flex:1; margin-top:0; padding:10px; font-size:0.9rem;">
-        <button id="verifyPaymentBtn" class="btn-solid" style="width:auto; margin-top:0; padding:0 15px; font-size:0.85rem;">I've completed the payment</button>
-      </div>
+      <button id="verifyPaymentBtn" class="btn-solid" style="width:100%; margin-top:0; padding:12px 15px; font-size:0.9rem;">I've completed the payment</button>
       <p id="verificationStatus" class="status-line" style="font-size:0.75rem;"></p>
     </div>
 
@@ -679,28 +675,27 @@
 
   verifyPaymentBtn.addEventListener('click', async () => {
     if (!currentPurchaseReference) return;
-    const paymentNumber = paymentNumberInput.value.trim();
     
     verifyPaymentBtn.disabled = true;
-    verificationStatus.textContent = 'Verifying payment...';
+    verificationStatus.textContent = 'Confirming payment...';
     verificationStatus.style.color = 'var(--text-dim)';
 
     try {
-      const res = await fetch(`${API_BASE}/api/purchase/${currentPurchaseReference}/verify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paymentNumber })
-      });
+      const res = await fetch(`${API_BASE}/api/purchase/${currentPurchaseReference}`);
       const data = await res.json();
 
       if (data.status === 'delivered') {
-        verificationStatus.textContent = '✓ Payment verified and data delivered!';
+        verificationStatus.textContent = '✓ Payment confirmed and data delivered!';
         verificationStatus.style.color = 'var(--green)';
         setStatus(`✓ ${data.capacity} ${data.network} delivered to ${data.phone}`, 'var(--green)');
-        showToast(`${data.capacity} ${data.network} delivered successfully!`, 'success');
+        showToast('Hurry!!! Your data is on the way', 'success');
       } else if (data.status === 'failed') {
         verificationStatus.textContent = 'Payment verification failed. Please try again.';
         verificationStatus.style.color = '#E4032E';
+      } else if (data.status === 'processing_delivery' || data.status === 'payment_ok_delivery_pending') {
+        verificationStatus.textContent = 'Payment confirmed! Processing your data...';
+        verificationStatus.style.color = 'var(--green)';
+        showToast('Hurry!!! Your data is on the way', 'success');
       } else {
         verificationStatus.textContent = 'Payment not yet confirmed. Please wait a moment and try again.';
         verificationStatus.style.color = 'var(--yellow-deep)';
