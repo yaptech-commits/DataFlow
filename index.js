@@ -813,6 +813,11 @@ app.post('/api/purchase', purchaseLimiter, async (req, res) => {
 
     console.log('Paystack charge response:', chargeResponse.data);
 
+    if (!chargeResponse.data.data) {
+      console.error('Invalid Paystack response structure:', chargeResponse.data);
+      return res.status(500).json({ error: 'Invalid payment response from provider' });
+    }
+
     const { reference, status, display_text } = chargeResponse.data.data;
 
     db.createPurchase({
