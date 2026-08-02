@@ -789,6 +789,14 @@ app.post('/api/purchase', purchaseLimiter, async (req, res) => {
     const amountCedis = pricing.finalPrice;
     const amountPesewas = Math.round(amountCedis * 100); // Paystack uses the smallest currency unit
 
+    console.log('Initiating Paystack charge:', {
+      email: `${paymentPhone}@dataflow-checkout.com`,
+      amount: amountPesewas,
+      currency: 'GHS',
+      provider: PAYSTACK_NETWORK_CODE[network],
+      network,
+    });
+
     const chargeResponse = await axios.post(
       `${PAYSTACK_BASE}/charge`,
       {
@@ -802,6 +810,8 @@ app.post('/api/purchase', purchaseLimiter, async (req, res) => {
       },
       { headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` } }
     );
+
+    console.log('Paystack charge response:', chargeResponse.data);
 
     const { reference, status, display_text } = chargeResponse.data.data;
 
@@ -841,8 +851,13 @@ app.post('/api/purchase', purchaseLimiter, async (req, res) => {
       instructions: finalInstructions,
     });
   } catch (err) {
-    console.error(err.response?.data || err.message);
-    res.status(500).json({ error: 'Could not start payment. Please try again.' });
+    console.error('Payment error:', {
+      status: err.response?.status,
+      data: err.response?.data,
+      message: err.message,
+    });
+    const errorMsg = err.response?.data?.message || err.message || 'Could not start payment. Please try again.';
+    res.status(err.response?.status || 500).json({ error: errorMsg });
   }
 });
 
