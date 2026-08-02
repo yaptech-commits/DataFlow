@@ -789,22 +789,27 @@ app.post('/api/purchase', purchaseLimiter, async (req, res) => {
     const amountCedis = pricing.finalPrice;
     const amountPesewas = Math.round(amountCedis * 100); // Paystack uses the smallest currency unit
 
+    const intlPaymentPhone = paymentPhone.startsWith('0') 
+      ? '+233' + paymentPhone.slice(1) 
+      : paymentPhone;
+
     console.log('Initiating Paystack charge:', {
       email: `${paymentPhone}@dataflow-checkout.com`,
       amount: amountPesewas,
       currency: 'GHS',
       provider: PAYSTACK_NETWORK_CODE[network],
+      phone: intlPaymentPhone,
       network,
     });
 
     const chargeResponse = await axios.post(
       `${PAYSTACK_BASE}/charge`,
       {
-        email: `${paymentPhone}@dataflow-checkout.com`, // Paystack requires an email; synthesize one
+        email: `${paymentPhone}@dataflow-checkout.com`,
         amount: amountPesewas,
         currency: 'GHS',
         mobile_money: {
-          phone: paymentPhone,
+          phone: intlPaymentPhone,
           provider: PAYSTACK_NETWORK_CODE[network],
         },
       },
