@@ -774,7 +774,6 @@
       const res = await fetch(`${API_BASE}/api/purchase`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ network: currentNet, phone, paymentPhone, capacity, ref: refCode || undefined }),
         signal: controller.signal
       });
