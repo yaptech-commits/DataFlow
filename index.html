@@ -731,6 +731,7 @@
         setStatus('Payment confirmed — delivery is taking longer than usual, check back shortly.', 'var(--yellow-deep)');
       } else if (data.status === 'processing_delivery'){
         setStatus('Payment confirmed — sending your data now...');
+        showToast('Hurry!!! Your data is on the way', 'success');
         setTimeout(() => pollPurchase(reference, attempts + 1), 3000);
       } else {
         // If it's still pending, update the status to show we are still checking
