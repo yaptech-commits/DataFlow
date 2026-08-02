@@ -767,14 +767,18 @@
     setStatus('Starting payment — check your phone for a prompt...');
 
     try {
+      console.log('Initiating payment request to:', `${API_BASE}/api/purchase`);
       const res = await fetch(`${API_BASE}/api/purchase`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ network: currentNet, phone, paymentPhone, capacity, ref: refCode || undefined })
       });
+      console.log('Response status:', res.status, 'ok:', res.ok);
       const data = await res.json();
+      console.log('Response data:', data);
 
       if (!res.ok){
+        console.error('API error:', data.error);
         setStatus(data.error || 'Something went wrong. Please try again.', '#E4032E');
         confirmPurchaseBtn.disabled = false;
         confirmPurchaseBtn.textContent = originalText;
@@ -782,6 +786,7 @@
       }
 
       currentPurchaseReference = data.reference;
+      console.log('Payment initiated successfully, reference:', data.reference);
       setStatus('Check your phone to approve payment');
       
       if (data.status === 'otp_required') {
@@ -798,7 +803,8 @@
       
       pollPurchase(data.reference);
     } catch(err){
-      console.error('Payment request error:', err);
+      console.error('Payment request error:', err.message, err);
+      console.error('Error stack:', err.stack);
       setStatus('Network error. Please check your connection and try again.', '#E4032E');
       confirmPurchaseBtn.disabled = false;
       confirmPurchaseBtn.textContent = originalText;
