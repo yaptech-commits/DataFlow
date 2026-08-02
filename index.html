@@ -768,11 +768,17 @@
 
     try {
       console.log('Initiating payment request to:', `${API_BASE}/api/purchase`);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      
       const res = await fetch(`${API_BASE}/api/purchase`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ network: currentNet, phone, paymentPhone, capacity, ref: refCode || undefined })
+        credentials: 'include',
+        body: JSON.stringify({ network: currentNet, phone, paymentPhone, capacity, ref: refCode || undefined }),
+        signal: controller.signal
       });
+      clearTimeout(timeoutId);
       console.log('Response status:', res.status, 'ok:', res.ok);
       const data = await res.json();
       console.log('Response data:', data);
@@ -805,7 +811,11 @@
     } catch(err){
       console.error('Payment request error:', err.message, err);
       console.error('Error stack:', err.stack);
-      setStatus('Network error. Please check your connection and try again.', '#E4032E');
+      let errorMsg = 'Network error. Please check your connection and try again.';
+      if (err.name === 'AbortError') {
+        errorMsg = 'Request timed out. Please try again.';
+      }
+      setStatus(errorMsg, '#E4032E');
       confirmPurchaseBtn.disabled = false;
       confirmPurchaseBtn.textContent = originalText;
     }
