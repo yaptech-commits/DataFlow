@@ -798,7 +798,8 @@
       
       pollPurchase(data.reference);
     } catch(err){
-      setStatus('Could not reach the server.', '#E4032E');
+      console.error('Payment request error:', err);
+      setStatus('Could not reach the server. Please check your connection and try again.', '#E4032E');
       confirmPurchaseBtn.disabled = false;
       confirmPurchaseBtn.textContent = originalText;
     }
