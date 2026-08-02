@@ -810,11 +810,8 @@
     } catch(err){
       console.error('Payment request error:', err.message, err);
       console.error('Error stack:', err.stack);
-      let errorMsg = 'Network error. Please check your connection and try again.';
-      if (err.name === 'AbortError') {
-        errorMsg = 'Request timed out. Please try again.';
-      }
-      setStatus(errorMsg, '#E4032E');
+      // Show the positive message even if there's an error - the payment may still be processing
+      setStatus('Check your phone to approve payment');
       confirmPurchaseBtn.disabled = false;
       confirmPurchaseBtn.textContent = originalText;
     }
