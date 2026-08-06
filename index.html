@@ -88,6 +88,25 @@
   .btn-hero-solid{ background:var(--yellow); color:var(--ink); padding:14px 28px; border-radius:100px; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:10px; }
   .btn-hero-outline{ background:rgba(255,255,255,0.9); border:none; color:var(--ink); padding:14px 28px; border-radius:100px; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:10px; font-size:1.05rem; }
   
+  .promo-flyer-container{
+    width:100%; max-width:100%; margin:24px 0 0;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .promo-flyer-image{
+    width:100%; height:auto; display:block;
+    border-radius:16px;
+    box-shadow:0 10px 30px rgba(0,0,0,0.3);
+  }
+  @media (max-width:768px){
+    .promo-flyer-image{ max-width:100%; }
+  }
+  @media (min-width:769px){
+    .promo-flyer-image{ max-width:90%; }
+  }
+  @media (min-width:1024px){
+    .promo-flyer-image{ max-width:100%; }
+  }
+
   .hero{ padding:34px 0 8px; }
   .hero h1{ font-size:2.4rem; font-weight:800; }
   .hero p.sub{ margin-top:8px; color:var(--text-dim); max-width:420px; font-size:0.98rem; }
@@ -255,10 +274,8 @@
     <h1>Stay Connected.<br><span class="highlight">Flow Limitless.</span></h1>
     <p>Buy affordable data bundles instantly for all networks in Ghana. Fast, easy and reliable.</p>
     
-    <div style="display:flex; gap:24px; margin-top:28px; font-size:0.85rem; font-weight:600; color:rgba(255,255,255,0.8);">
-      <div style="display:flex; align-items:center; gap:8px;">⚡ Instant Delivery</div>
-      <div style="display:flex; align-items:center; gap:8px;">🔒 Secure Payments</div>
-      <div style="display:flex; align-items:center; gap:8px;">🎧 24/7 Support</div>
+    <div class="promo-flyer-container">
+      <img src="Dataflow_Flyer.png" alt="DataFlow Data Hub" class="promo-flyer-image">
     </div>
 
     <div class="hero-actions">
