@@ -101,17 +101,18 @@
   .ticker-overlay {
     position: absolute; bottom: 0; left: 0; width: 100%;
     background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px);
-    color: #fff; padding: 8px 0; overflow: hidden; white-space: nowrap;
+    color: #fff; padding: 10px 0; overflow: hidden; white-space: nowrap;
     border-bottom-left-radius: 16px; border-bottom-right-radius: 16px;
     pointer-events: none; z-index: 5;
   }
   .ticker-content {
-    display: inline-block; padding-left: 100%;
-    animation: ticker 25s linear infinite; font-weight: 700; font-size: 0.95rem;
+    display: inline-block;
+    animation: ticker linear infinite; font-weight: 700; font-size: 0.95rem;
+    will-change: transform;
   }
   @keyframes ticker {
-    0% { transform: translate3d(0, 0, 0); }
-    100% { transform: translate3d(-100%, 0, 0); }
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
   }
   .ticker-item { display: inline-block; margin-right: 40px; color: var(--yellow); }
   .ticker-item span { color: #fff; margin-left: 6px; }
@@ -619,9 +620,15 @@
   function updateTicker(packages) {
     const ticker = document.getElementById('tickerContent');
     if (!ticker || !packages || !packages.length) return;
-    ticker.innerHTML = packages.map(p => `
+    // Sort packages to show a good variety
+    const sorted = [...packages].sort((a, b) => a.network.localeCompare(b.network));
+    const content = sorted.map(p => `
       <span class="ticker-item">${p.network} ${p.capacity} <span>GH₵ ${p.price.toFixed(2)}</span></span>
-    `).join('') + ticker.innerHTML; 
+    `).join('');
+    // Double the content for a truly seamless loop
+    ticker.innerHTML = content + content;
+    // Adjust speed based on content length (roughly 3 seconds per item)
+    ticker.style.animationDuration = Math.max(20, sorted.length * 3) + 's';
   }
 
   async function loadPackages(retries = 3){
