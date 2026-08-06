@@ -77,7 +77,7 @@
   /* ---------- hero ---------- */
   .hero-section{ 
     background:#020617; color:#fff; padding:60px 0 40px; 
-    background-image: linear-gradient(to bottom, rgba(2,6,23,0.85), rgba(2,6,23,0.95)), url(\'assets/hero-banner.png\');
+    background-image: linear-gradient(to bottom, rgba(2,6,23,0.85), rgba(2,6,23,0.95)), url('assets/hero-banner.png');
     background-size: cover; background-position: center; border-radius: 0 0 32px 32px;
   }
   .hero-content h1{ font-size:3.2rem; line-height:1.1; font-weight:800; }
@@ -91,21 +91,30 @@
   .promo-flyer-container{
     width:100%; max-width:100%; margin:24px 0 0;
     display:flex; align-items:center; justify-content:center;
+    position: relative; overflow: hidden; border-radius: 16px;
   }
   .promo-flyer-image{
     width:100%; height:auto; display:block;
     border-radius:16px;
     box-shadow:0 10px 30px rgba(0,0,0,0.3);
   }
-  @media (max-width:768px){
-    .promo-flyer-image{ max-width:100%; }
+  .ticker-overlay {
+    position: absolute; bottom: 0; left: 0; width: 100%;
+    background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px);
+    color: #fff; padding: 8px 0; overflow: hidden; white-space: nowrap;
+    border-bottom-left-radius: 16px; border-bottom-right-radius: 16px;
+    pointer-events: none; z-index: 5;
   }
-  @media (min-width:769px){
-    .promo-flyer-image{ max-width:90%; }
+  .ticker-content {
+    display: inline-block; padding-left: 100%;
+    animation: ticker 25s linear infinite; font-weight: 700; font-size: 0.95rem;
   }
-  @media (min-width:1024px){
-    .promo-flyer-image{ max-width:100%; }
+  @keyframes ticker {
+    0% { transform: translate3d(0, 0, 0); }
+    100% { transform: translate3d(-100%, 0, 0); }
   }
+  .ticker-item { display: inline-block; margin-right: 40px; color: var(--yellow); }
+  .ticker-item span { color: #fff; margin-left: 6px; }
 
   .hero{ padding:34px 0 8px; }
   .hero h1{ font-size:2.4rem; font-weight:800; }
@@ -274,6 +283,14 @@
     <h1>Stay Connected.<br><span class="highlight">Flow Limitless.</span></h1>
     <div class="promo-flyer-container">
       <img src="hero-flyer.png" alt="DataFlow Data Hub" class="promo-flyer-image">
+      <div class="ticker-overlay">
+        <div class="ticker-content" id="tickerContent">
+          <span class="ticker-item">MTN 1.5GB <span>GH₵ 10.00</span></span>
+          <span class="ticker-item">Telecel 2GB <span>GH₵ 12.50</span></span>
+          <span class="ticker-item">AirtelTigo 5GB <span>GH₵ 25.00</span></span>
+          <span class="ticker-item">MTN 10GB <span>GH₵ 38.50</span></span>
+        </div>
+      </div>
     </div>
 
     <div class="hero-actions">
@@ -293,27 +310,43 @@
     </div>
   </div>
 
-  <div class="network-row" id="networkPicker" style="margin-bottom: 20px;">
-    <div class="net-choice active" data-net="MTN">MTN</div>
-    <div class="net-choice" data-net="AirtelTigo"><span class="dot" style="background:var(--blue)"></span>AirtelTigo</div>
-    <div class="net-choice" data-net="Telecel"><span class="dot" style="background:var(--red)"></span>Telecel</div>
+  <div class="network-row" id="networkPicker">
+    <div class="net-choice active" data-net="MTN">
+      <div class="dot" style="background:#FFCC08"></div> MTN
+    </div>
+    <div class="net-choice" data-net="Telecel">
+      <div class="dot" style="background:#E4032E"></div> Telecel
+    </div>
+    <div class="net-choice" data-net="AirtelTigo">
+      <div class="dot" style="background:#3B6FE0"></div> AirtelTigo
+    </div>
   </div>
 
-  <div class="bundle-grid" id="packageList" style="margin-bottom: 36px;">
-    <span class="status-line">Loading packages...</span>
+  <div class="bundle-grid" id="packageList">
+    <div style="grid-column: 1 / -1; padding:40px 0; text-align:center;">
+      <span class="status-line">Loading data bundles...</span>
+    </div>
+  </div>
+</section>
+
+<section class="wrap" id="agent">
+  <div class="section">
+    <h2>Agent Partnership</h2>
+    <p class="section-sub">Join DataFlow as an agent and earn commissions on every bundle sold through your link.</p>
   </div>
 
-  <!-- Become an Agent Section shifted back -->
-  <div class="feature-card fc-green" style="margin-bottom: 40px;">
-    <div class="feature-top">
-      <div>
-        <div class="feature-eyebrow">PARTNERSHIP</div>
-        <h3>Become a DataFlow Agent</h3>
-        <p>Start your own data business today. Earn commissions by selling data to others through your personalized link.</p>
-      </div>
-      <div class="feature-price">
-        <div class="lbl">COMMISSION</div>
-        <div class="amt">UP TO 20%</div>
+  <div class="feature-cards">
+    <div class="feature-card fc-green">
+      <div class="feature-top">
+        <div>
+          <div class="feature-eyebrow" style="color:var(--green)">PARTNERSHIP</div>
+          <h3>Become a DataFlow Agent</h3>
+          <p>Start your own data business today. Earn commission on every purchase.</p>
+        </div>
+        <div class="feature-price">
+          <div class="lbl">COMMISSION</div>
+          <div class="amt">UP TO 20%</div>
+        </div>
       </div>
     </div>
     <div class="feature-note">
@@ -348,20 +381,20 @@
 
     <p id="purchaseStatus" class="status-line" style="margin-top:12px; font-size:0.8rem;"></p>
 
+    <button id="manualCheckBtn" class="btn-solid" style="display:none; margin-top:10px; background:var(--ink); color:var(--yellow); border:1.5px solid var(--yellow);">I've Completed the Payment</button>
+
     <!-- OTP Section -->
-    <div id="otpSection" style="display:none; flex-direction:column; gap:7px; margin-top:16px; border-top:1px solid var(--line); padding-top:16px;">
-      <label for="otpInput" style="font-size:0.8rem; font-weight:600; color:var(--text-dim);">OTP code from your phone</label>
+    <div id="otpSection" style="display:none; flex-direction:column; gap:10px; margin-top:16px; border-top:1.5px solid var(--line); padding-top:16px;">
+      <div style="background:var(--yellow-soft); border:1.5px solid var(--amber-line); border-radius:12px; padding:12px; text-align:center;">
+        <p style="font-size:0.85rem; color:var(--amber-text); font-weight:600; margin:0;">Enter Paystack OTP Code</p>
+        <p style="font-size:0.75rem; color:var(--amber-text); margin:4px 0 0 0; opacity:0.8;">Check your phone for a 4-6 digit code</p>
+      </div>
+      <label for="otpInput" style="font-size:0.8rem; font-weight:600; color:var(--text-dim);">Paystack OTP Code</label>
       <div style="display:flex; gap:10px;">
-        <input type="text" id="otpInput" placeholder="Code" style="flex:1; margin-top:0; padding:10px; font-size:0.9rem;">
+        <input type="text" id="otpInput" placeholder="0000" maxlength="6" style="flex:1; margin-top:0; padding:12px 14px; font-size:1rem; font-weight:600; text-align:center; letter-spacing:2px;">
         <button id="submitOtpBtn" class="btn-solid" style="width:auto; margin-top:0; padding:0 15px; font-size:0.85rem;">Verify</button>
       </div>
       <p id="otpStatus" class="status-line" style="font-size:0.75rem;"></p>
-    </div>
-
-    <!-- Manual Verification Section -->
-    <div id="manualVerificationSection" style="display:none; flex-direction:column; gap:7px; margin-top:16px; border-top:1px solid var(--line); padding-top:16px;">
-      <button id="verifyPaymentBtn" class="btn-solid" style="width:100%; margin-top:0; padding:12px 15px; font-size:0.9rem;">I've completed the payment</button>
-      <p id="verificationStatus" class="status-line" style="font-size:0.75rem;"></p>
     </div>
 
     <button id="confirmPurchaseBtn" class="btn-solid" style="margin-top:20px;">Pay Now</button>
@@ -448,18 +481,7 @@
   <div id="toastMsg" style="flex:1;"></div>
 </div>
 
-<style>
-  @keyframes slideDown {
-    from { top:-100px; opacity:0; }
-    to { top:20px; opacity:1; }
-  }
-  .toast-success { background:#E8F7F0; border:1.5px solid #0EA35B; color:#0EA35B; }
-  .toast-error { background:#FEECEF; border:1.5px solid #E4032E; color:#E4032E; }
-</style>
-
-<footer class="wrap">
-  <p>&copy; 2026 DataFlow Ghana · Fast, secure, reliable.</p>
-</footer>
+<footer>DataFlow — Buy data bundles instantly</footer>
 
 <script>
   window.API_BASE = 'https://dataflow-backend-obbt.onrender.com'; // Backend URL
@@ -477,14 +499,15 @@
   const showSignupLink = document.getElementById('showSignupLink');
   const showLoginLink = document.getElementById('showLoginLink');
   const agentSignupForm = document.getElementById('agentSignupForm');
-
+  const agentLoginForm = document.getElementById('agentLoginForm');
+  const agentDashboard = document.getElementById('agentDashboard');
 
   let sessionToken = null;
   let loggedInCode = null;
 
   function openAgentModal() {
     agentModal.classList.add('open');
-    if (typeof sessionToken === 'undefined' || !sessionToken) {
+    if (!sessionToken) {
       agentLoginForm.style.display = 'block';
       agentSignupForm.style.display = 'none';
       agentDashboard.style.display = 'none';
@@ -492,7 +515,6 @@
       agentLoginForm.style.display = 'none';
       agentSignupForm.style.display = 'none';
       agentDashboard.style.display = 'block';
-      loadAgentData();
     }
   }
 
@@ -555,13 +577,11 @@
   const otpInput = document.getElementById('otpInput');
   const submitOtpBtn = document.getElementById('submitOtpBtn');
   const otpStatus = document.getElementById('otpStatus');
-  const manualVerificationSection = document.getElementById('manualVerificationSection');
-  const paymentNumberInput = document.getElementById('paymentNumberInput');
-  const verifyPaymentBtn = document.getElementById('verifyPaymentBtn');
-  const verificationStatus = document.getElementById('verificationStatus');
+  const manualCheckBtn = document.getElementById('manualCheckBtn');
 
   let currentPurchaseReference = null;
   let selectedPackage = null;
+  let allPackages = [];
   const checkoutModal = document.getElementById('checkoutModal');
   const modalBundleCap = document.getElementById('modalBundleCap');
   const modalBundlePrice = document.getElementById('modalBundlePrice');
@@ -583,89 +603,82 @@
     const icon = document.getElementById('toastIcon');
     const msgEl = document.getElementById('toastMsg');
     
-    toast.className = type === 'success' ? 'toast-success' : 'toast-error';
+    toast.style.display = 'flex';
+    toast.style.opacity = '1';
     icon.innerHTML = type === 'success' ? '✓' : '✕';
     icon.style.background = type === 'success' ? '#0EA35B' : '#E4032E';
     icon.style.color = '#fff';
     msgEl.textContent = msg;
     
-    toast.style.display = 'flex';
     setTimeout(() => {
       toast.style.opacity = '0';
-      setTimeout(() => { toast.style.display = 'none'; toast.style.opacity = '1'; }, 400);
+      setTimeout(() => { toast.style.display = 'none'; }, 400);
     }, 5000);
   }
 
+  function updateTicker(packages) {
+    const ticker = document.getElementById('tickerContent');
+    if (!ticker || !packages || !packages.length) return;
+    ticker.innerHTML = packages.map(p => `
+      <span class="ticker-item">${p.network} ${p.capacity} <span>GH₵ ${p.price.toFixed(2)}</span></span>
+    `).join('') + ticker.innerHTML; 
+  }
+
   async function loadPackages(retries = 3){
-    console.log(`[DataFlow] Loading packages for ${currentNet} (Retries left: ${retries})...`);
-    packageListEl.innerHTML = '<div style="padding:20px; text-align:center;"><span class="status-line">Loading bundles...</span></div>';
-    
     try {
       const url = refCode ? `${API_BASE}/api/packages?ref=${refCode}` : `${API_BASE}/api/packages`;
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
-      
-      const res = await fetch(url, { signal: controller.signal });
-      clearTimeout(timeoutId);
-      
-      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-      const responseData = await res.json();
-      
-      const allPackages = Array.isArray(responseData) ? responseData : (responseData.packages || []);
-      const packages = allPackages.filter(p => p.network === currentNet);
-
-      if (packages.length === 0 && retries > 0) {
-        console.warn(`[DataFlow] No packages found for ${currentNet}, retrying in 2s...`);
-        setTimeout(() => loadPackages(retries - 1), 2000);
-        return;
-      }
-
-      packageListEl.innerHTML = '';
-      if (packages.length === 0) {
-        packageListEl.innerHTML = '<div style="padding:20px; text-align:center;"><span class="status-line">No bundles available for ' + currentNet + ' right now.</span></div>';
-        return;
-      }
-
-      packages.forEach(pkg => {
-        const card = document.createElement('div');
-        card.className = 'bundle-card';
-        card.onclick = () => openCheckout(pkg.capacity, pkg.price);
-        card.innerHTML = `
-          <div class="bundle-badges">
-            <span class="badge-oval">${pkg.network}</span>
-            ${pkg.isHot ? '<span class="badge-pill">HOT</span>' : ''}
-          </div>
-          <div class="bundle-cap">${pkg.capacity}</div>
-          <div class="bundle-sub">Instant delivery</div>
-          <div class="bundle-price">
-            <span class="cur">GH₵</span>
-            <span class="amt">${pkg.price.toFixed(2)}</span>
-          </div>
-          <button class="buy-btn">Buy Now</button>
-        `;
-        packageListEl.appendChild(card);
-      });
-      console.log(`[DataFlow] Successfully loaded ${packages.length} packages for ${currentNet}.`);
-    } catch(err){
-      console.error('[DataFlow] Error loading packages:', err);
-      if (retries > 0) {
-        setTimeout(() => loadPackages(retries - 1), 3000);
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        allPackages = data.packages || [];
+        renderPackages();
+        updateTicker(allPackages);
+        localStorage.setItem('dataflow_packages_cache', JSON.stringify({ timestamp: Date.now(), packages: allPackages }));
       } else {
-        packageListEl.innerHTML = `
-          <div style="grid-column: 1 / -1; text-align:center; padding:30px 20px; background:var(--surface); border-radius:18px; border:1px solid var(--line);">
-            <span class="status-line" style="color:#E4032E; display:block; margin-bottom:12px;">Connection issue while loading packages.</span>
-            <button onclick="loadPackages()" style="background:var(--ink); color:#fff; border:none; padding:10px 20px; border-radius:100px; font-weight:700; cursor:pointer; font-size:0.9rem;">Retry Now</button>
-          </div>
-        `;
+        throw new Error('Server error');
+      }
+    } catch(err) {
+      const cached = localStorage.getItem('dataflow_packages_cache');
+      if (cached) {
+        const cache = JSON.parse(cached);
+        allPackages = cache.packages;
+        renderPackages();
+        updateTicker(allPackages);
+      } else if (retries > 0) {
+        setTimeout(() => loadPackages(retries - 1), 3000);
       }
     }
   }
-  // Ensure loadPackages is called after DOM is ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => loadPackages());
-  } else {
-    loadPackages();
+
+  function renderPackages(){
+    const packages = allPackages.filter(p => p.network === currentNet);
+    packageListEl.innerHTML = '';
+    if (packages.length === 0) {
+      packageListEl.innerHTML = '<div style="padding:20px; text-align:center;"><span class="status-line">No bundles available for ' + currentNet + ' right now.</span></div>';
+      return;
+    }
+    packages.forEach(pkg => {
+      const card = document.createElement('div');
+      card.className = 'bundle-card';
+      card.onclick = () => openCheckout(pkg.capacity, pkg.price);
+      card.innerHTML = `
+        <div class="bundle-badges">
+          <span class="badge-oval">${pkg.network}</span>
+          ${pkg.isHot ? '<span class="badge-pill">HOT</span>' : ''}
+        </div>
+        <div class="bundle-cap">${pkg.capacity}</div>
+        <div class="bundle-sub">Instant delivery</div>
+        <div class="bundle-price">
+          <span class="cur">GH₵</span>
+          <span class="amt">${pkg.price.toFixed(2)}</span>
+        </div>
+        <button class="buy-btn">Buy Now</button>
+      `;
+      packageListEl.appendChild(card);
+    });
   }
+
+  loadPackages();
 
   window.openCheckout = (capacity, price) => {
     selectedPackage = { capacity, price };
@@ -673,403 +686,131 @@
     modalBundlePrice.textContent = `GH₵ ${price.toFixed(2)}`;
     setStatus('');
     otpSection.style.display = 'none';
-    manualVerificationSection.style.display = 'none';
+    manualCheckBtn.style.display = 'none';
     checkoutModal.classList.add('open');
     phoneInput.focus();
   };
 
-  closeModal.addEventListener('click', () => {
-    checkoutModal.classList.remove('open');
-  });
-
-  checkoutModal.addEventListener('click', (e) => {
-    if (e.target === checkoutModal) checkoutModal.classList.remove('open');
-  });
+  closeModal.addEventListener('click', () => { checkoutModal.classList.remove('open'); });
+  checkoutModal.addEventListener('click', (e) => { if (e.target === checkoutModal) checkoutModal.classList.remove('open'); });
 
   confirmPurchaseBtn.addEventListener('click', () => handleBuyClick());
 
-  verifyPaymentBtn.addEventListener('click', async () => {
-    if (!currentPurchaseReference) return;
-    
-    verifyPaymentBtn.disabled = true;
-    verificationStatus.textContent = 'Confirming payment...';
-    verificationStatus.style.color = 'var(--text-dim)';
-
-    try {
-      const res = await fetch(`${API_BASE}/api/purchase/${currentPurchaseReference}`);
-      const data = await res.json();
-
-      if (data.status === 'delivered') {
-        verificationStatus.textContent = '✓ Payment confirmed and data delivered!';
-        verificationStatus.style.color = 'var(--green)';
-        setStatus(`✓ ${data.capacity} ${data.network} delivered to ${data.phone}`, 'var(--green)');
-        showToast('Hurry!!! Your data is on the way', 'success');
-      } else if (data.status === 'failed') {
-        verificationStatus.textContent = 'Payment verification failed. Please try again.';
-        verificationStatus.style.color = '#E4032E';
-      } else if (data.status === 'processing_delivery' || data.status === 'payment_ok_delivery_pending') {
-        verificationStatus.textContent = 'Payment confirmed! Processing your data...';
-        verificationStatus.style.color = 'var(--green)';
-        showToast('Hurry!!! Your data is on the way', 'success');
-      } else {
-        verificationStatus.textContent = 'Payment not yet confirmed. Please wait a moment and try again.';
-        verificationStatus.style.color = 'var(--yellow-deep)';
-      }
-    } catch (err) {
-      verificationStatus.textContent = 'Error reaching the server.';
-      verificationStatus.style.color = '#E4032E';
-    } finally {
-      verifyPaymentBtn.disabled = false;
-    }
-  });
-
   async function pollPurchase(reference, attempts = 0){
-    if (attempts > 60){
-      setStatus('Still waiting on confirmation — check back shortly.', 'var(--yellow-deep)');
-      return;
-    }
+    if (attempts > 60) return;
     try {
       const res = await fetch(`${API_BASE}/api/purchase/${reference}`);
       const data = await res.json();
-
       if (data.status === 'delivered'){
-        setStatus(`✓ ${data.capacity} ${data.network} delivered to ${data.phone}`, 'var(--green)');
-        showToast(`${data.capacity} ${data.network} delivered successfully!`, 'success');
+        setStatus(`✓ Delivered to ${data.phone}`, 'var(--green)');
+        showSuccessPopup();
       } else if (data.status === 'failed'){
-        setStatus('Payment failed or was declined. Please try again.', '#E4032E');
-        showToast('Payment was declined or failed. Please try again.', 'error');
-      } else if (data.status === 'payment_ok_delivery_failed'){
-        const err = data.deliveryError || 'Delivery issue — support notified.';
-        setStatus(`Payment succeeded but delivery failed: ${err}`, '#E4032E');
-        showToast('Payment successful, but delivery failed. We are investigating.', 'error');
-      } else if (data.status === 'payment_ok_delivery_pending'){
-        setStatus('Payment confirmed — delivery is taking longer than usual, check back shortly.', 'var(--yellow-deep)');
-      } else if (data.status === 'processing_delivery'){
-        setStatus('Payment confirmed — sending your data now...');
-        showToast('Welcome to DataFlow, thank you for purchasing from us.\n\nHurry!!! Your Data bundle is on the way.', 'success');
-        setTimeout(() => pollPurchase(reference, attempts + 1), 3000);
+        setStatus('Payment failed. Please try again.', '#E4032E');
+      } else if (data.status === 'processing_delivery' || data.status === 'payment_ok_delivery_pending'){
+        setStatus('Payment confirmed — sending data...');
+        showSuccessPopup();
       } else {
-        // If it's still pending, update the status to show we are still checking
-        if (attempts > 0) {
-          setStatus('Processing your payment... please wait.');
-        }
         setTimeout(() => pollPurchase(reference, attempts + 1), 3000);
       }
-    } catch(err){
-      setStatus('Could not reach the server to confirm status.', '#E4032E');
-    }
+    } catch(err){}
   }
 
   async function handleBuyClick(){
-    if (!selectedPackage) return;
     const phone = phoneInput.value.trim();
     const paymentPhone = paymentPhoneInput.value.trim();
-    const { capacity } = selectedPackage;
-
-    if (!/^0\d{9}$/.test(phone)){
-      setStatus('Enter a 10-digit number to receive data.', '#E4032E');
-      phoneInput.focus();
-      return;
-    }
-    if (!/^0\d{9}$/.test(paymentPhone)){
-      setStatus('Enter a 10-digit Mobile Money number to pay.', '#E4032E');
-      paymentPhoneInput.focus();
-      return;
-    }
-
+    if (!/^0\d{9}$/.test(phone) || !/^0\d{9}$/.test(paymentPhone)) return setStatus('Enter valid 10-digit numbers.', '#E4032E');
+    
     confirmPurchaseBtn.disabled = true;
-    const originalText = confirmPurchaseBtn.textContent;
-    confirmPurchaseBtn.textContent = 'Processing...';
-    setStatus('Starting payment — check your phone for a prompt...');
-
+    setStatus('Processing payment...');
     try {
-      console.log('Initiating payment request to:', `${API_BASE}/api/purchase`);
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-      
       const res = await fetch(`${API_BASE}/api/purchase`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ network: currentNet, phone, paymentPhone, capacity, ref: refCode || undefined }),
-        signal: controller.signal
+        body: JSON.stringify({ network: currentNet, phone, paymentPhone, capacity: selectedPackage.capacity, ref: refCode || undefined })
       });
-      clearTimeout(timeoutId);
-      console.log('Response status:', res.status, 'ok:', res.ok);
       const data = await res.json();
-      console.log('Response data:', data);
-
-      if (!res.ok){
-        console.error('API error:', data.error);
-        setStatus(data.error || 'Something went wrong. Please try again.', '#E4032E');
+      if (!res.ok) {
+        setStatus(data.error || 'Error. Try again.', '#E4032E');
         confirmPurchaseBtn.disabled = false;
-        confirmPurchaseBtn.textContent = originalText;
         return;
       }
-
       currentPurchaseReference = data.reference;
-      console.log('Payment initiated successfully, reference:', data.reference);
       setStatus('Check your phone to approve payment');
-      
+      manualCheckBtn.style.display = 'block';
       if (data.status === 'otp_required') {
         otpSection.style.display = 'flex';
         otpInput.focus();
-        otpInput.value = '';
-        setOtpStatus('');
       }
-      
-      // Show manual verification as a fallback
-      manualVerificationSection.style.display = 'flex';
-      paymentNumberInput.value = '';
-      verificationStatus.textContent = '';
-      
       pollPurchase(data.reference);
     } catch(err){
-      console.error('Payment request error:', err.message, err);
-      console.error('Error stack:', err.stack);
-      // Show the positive message even if there's an error - the payment may still be processing
-      setStatus('Check your phone to approve payment');
       confirmPurchaseBtn.disabled = false;
-      confirmPurchaseBtn.textContent = originalText;
     }
   }
 
-  // ---------- agent signup ----------
-  const agentSignupBtn = document.getElementById('agentSignupBtn');
-  const agentSignupStatus = document.getElementById('agentSignupStatus');
-
-  agentSignupBtn.addEventListener('click', async () => {
-    const name = document.getElementById('agentName').value.trim();
-    const phone = document.getElementById('agentPhone').value.trim();
-    const network = document.getElementById('agentNetwork').value;
-    const markupPercent = document.getElementById('agentMarkup').value;
-    const password = document.getElementById('agentPassword').value;
-
-    if (name.length < 2){
-      agentSignupStatus.textContent = 'Enter your full name.';
-      agentSignupStatus.style.color = '#E4032E';
-      return;
-    }
-    if (!/^0\d{9}$/.test(phone)){
-      agentSignupStatus.textContent = 'Enter a valid 10-digit Ghana number starting with 0.';
-      agentSignupStatus.style.color = '#E4032E';
-      return;
-    }
-    if (password.length < 6){
-      agentSignupStatus.textContent = 'Password must be at least 6 characters.';
-      agentSignupStatus.style.color = '#E4032E';
-      return;
-    }
-
-    agentSignupBtn.disabled = true;
-    agentSignupStatus.textContent = 'Setting up your shop...';
-    agentSignupStatus.style.color = 'var(--text-dim)';
-
-    try {
-      const res = await fetch(`${API_BASE}/api/agents/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, phone, network, markupPercent, password })
-      });
-      const data = await res.json();
-
-      if (!res.ok){
-        agentSignupStatus.textContent = data.error || 'Something went wrong.';
-        agentSignupStatus.style.color = '#E4032E';
-        return;
-      }
-
-      const shopLink = `${window.location.origin}${window.location.pathname}?ref=${data.referralCode}`;
-      agentSignupStatus.innerHTML = `Your code: <strong style="color:var(--green);">${data.referralCode}</strong> · markup: <strong style="color:var(--yellow-deep);">${data.markupPercent}%</strong><br>Shop link: <span style="color:var(--yellow-deep); word-break:break-all;">${shopLink}</span><br>You're logged in below — save your password to log back in later.`;
-
-      sessionToken = data.token;
-      loggedInCode = data.referralCode;
-      showDashboard({ walletBalance: 0, totalSales: 0, markupPercent: data.markupPercent });
-    } catch(err){
-      agentSignupStatus.textContent = 'Could not reach the server.';
-      agentSignupStatus.style.color = '#E4032E';
-    } finally {
-      agentSignupBtn.disabled = false;
-    }
+  manualCheckBtn.addEventListener('click', () => {
+    if (!currentPurchaseReference) return;
+    manualCheckBtn.disabled = true;
+    manualCheckBtn.textContent = 'Checking...';
+    pollPurchase(currentPurchaseReference).finally(() => {
+      manualCheckBtn.disabled = false;
+      manualCheckBtn.textContent = "I've Completed the Payment";
+    });
   });
-
-  // ---------- agent login + dashboard (session-based) ----------
-  const agentLoginBtn = document.getElementById('agentLoginBtn');
-  const agentLoginStatus = document.getElementById('agentLoginStatus');
-  const agentWallet = document.getElementById('agentWallet');
-  const agentSalesCount = document.getElementById('agentSalesCount');
-  const agentWithdrawBtn = document.getElementById('agentWithdrawBtn');
-  const agentWithdrawStatus = document.getElementById('agentWithdrawStatus');
-  const agentMarkupUpdate = document.getElementById('agentMarkupUpdate');
-  const agentMarkupSaveBtn = document.getElementById('agentMarkupSaveBtn');
-  const agentLogoutBtn = document.getElementById('agentLogoutBtn');
-
-
-  function showDashboard(data){
-    agentWallet.textContent = `GH₵ ${data.walletBalance.toFixed(2)}`;
-    agentSalesCount.textContent = data.totalSales;
-    agentMarkupUpdate.value = data.markupPercent;
-    agentWithdrawStatus.textContent = '';
-    agentLoginForm.style.display = 'none';
-    agentDashboard.style.display = 'block';
-  }
-
-  function logout(){
-    sessionToken = null;
-    loggedInCode = null;
-    agentDashboard.style.display = 'none';
-    agentLoginForm.style.display = 'block';
-    agentLoginStatus.textContent = '';
-  }
 
   agentLoginBtn.addEventListener('click', async () => {
     const code = document.getElementById('agentCodeInput').value.trim().toUpperCase();
     const password = document.getElementById('agentPasswordInput').value;
-    if (!code || !password){
-      agentLoginStatus.textContent = 'Enter your agent code and password.';
-      agentLoginStatus.style.color = '#E4032E';
-      return;
-    }
-
-    agentLoginBtn.disabled = true;
-    agentLoginStatus.textContent = 'Logging in...';
-    agentLoginStatus.style.color = 'var(--text-dim)';
-
     try {
-      const loginRes = await fetch(`${API_BASE}/api/agents/login`, {
+      const res = await fetch(`${API_BASE}/api/agents/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ referralCode: code, password })
       });
-      const loginData = await loginRes.json();
-
-      if (!loginRes.ok){
-        agentLoginStatus.textContent = loginData.error || 'Login failed.';
-        agentLoginStatus.style.color = '#E4032E';
-        return;
-      }
-
-      sessionToken = loginData.token;
-      loggedInCode = loginData.referralCode;
-
-      const dashRes = await fetch(`${API_BASE}/api/agents/${loggedInCode}`, {
-        headers: { Authorization: `Bearer ${sessionToken}` }
-      });
-      const dashData = await dashRes.json();
-      if (!dashRes.ok){
-        agentLoginStatus.textContent = dashData.error || 'Could not load your dashboard.';
-        agentLoginStatus.style.color = '#E4032E';
-        return;
-      }
-
-      showDashboard(dashData);
-    } catch(err){
-      agentLoginStatus.textContent = 'Could not reach the server.';
-      agentLoginStatus.style.color = '#E4032E';
-    } finally {
-      agentLoginBtn.disabled = false;
-    }
-  });
-
-  agentLogoutBtn.addEventListener('click', logout);
-
-  // Handle OTP submission
-  submitOtpBtn.addEventListener('click', async () => {
-    const otp = otpInput.value.trim();
-
-    if (!otp || !/^\d{4,6}$/.test(otp)) {
-      setOtpStatus('Enter a valid 4-6 digit OTP.', '#E4032E');
-      return;
-    }
-
-    submitOtpBtn.disabled = true;
-    setOtpStatus('Verifying OTP...');
-
-    try {
-      const res = await fetch(`${API_BASE}/api/purchase/${currentPurchaseReference}/otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ otp })
-      });
       const data = await res.json();
-
-      if (!res.ok) {
-        setOtpStatus(data.error || 'OTP verification failed.', '#E4032E');
-        submitOtpBtn.disabled = false;
-        return;
+      if (res.ok) {
+        sessionToken = data.token;
+        loggedInCode = data.referralCode;
+        openAgentModal();
       }
-
-      setOtpStatus('OTP accepted — processing payment...');
-      setStatus('OTP accepted — processing payment...');
-      // Start polling again to check payment status
-      pollPurchase(currentPurchaseReference);
-    } catch(err) {
-      setOtpStatus('Could not verify OTP. Is the backend running?', '#E4032E');
-      submitOtpBtn.disabled = false;
-    }
+    } catch(err){}
   });
 
-  agentMarkupSaveBtn.addEventListener('click', async () => {
-    if (!sessionToken || !loggedInCode) return;
-    agentMarkupSaveBtn.disabled = true;
-
-    try {
-      const res = await fetch(`${API_BASE}/api/agents/${loggedInCode}/markup`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${sessionToken}`
-        },
-        body: JSON.stringify({ markupPercent: agentMarkupUpdate.value })
-      });
-      const data = await res.json();
-
-      if (!res.ok){
-        if (res.status === 401) logout();
-        agentWithdrawStatus.textContent = data.error || 'Could not update markup.';
-        agentWithdrawStatus.style.color = '#E4032E';
-        return;
-      }
-
-      agentWithdrawStatus.textContent = `✓ Markup updated to ${data.markupPercent}%.`;
-      agentWithdrawStatus.style.color = 'var(--green)';
-    } catch(err){
-      agentWithdrawStatus.textContent = 'Could not reach the server.';
-      agentWithdrawStatus.style.color = '#E4032E';
-    } finally {
-      agentMarkupSaveBtn.disabled = false;
-    }
-  });
-
-  agentWithdrawBtn.addEventListener('click', async () => {
-    if (!sessionToken || !loggedInCode) return;
-    agentWithdrawBtn.disabled = true;
-
-    try {
-      const res = await fetch(`${API_BASE}/api/agents/${loggedInCode}/withdraw`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${sessionToken}` }
-      });
-      const data = await res.json();
-
-      if (!res.ok){
-        if (res.status === 401) logout();
-        agentWithdrawStatus.textContent = data.error || 'Could not withdraw.';
-        agentWithdrawStatus.style.color = '#E4032E';
-        return;
-      }
-
-      agentWithdrawStatus.textContent = `✓ GH₵ ${data.withdrawn.toFixed(2)} sent to your Mobile Money.`;
-      agentWithdrawStatus.style.color = 'var(--green)';
-      agentWallet.textContent = 'GH₵ 0.00';
-      agentSalesCount.textContent = data.agent.totalSales;
-    } catch(err){
-      agentWithdrawStatus.textContent = 'Could not reach the server.';
-      agentWithdrawStatus.style.color = '#E4032E';
-    } finally {
-      agentWithdrawBtn.disabled = false;
-    }
-  });
+  // Success Popup Logic
+  let successCountdownInterval = null;
+  function closeSuccessPopup(){
+    if (successCountdownInterval) clearInterval(successCountdownInterval);
+    document.getElementById('successPopup').classList.remove('open');
+    checkoutModal.classList.remove('open');
+    confirmPurchaseBtn.disabled = false;
+  }
+  function showSuccessPopup(){
+    const popup = document.getElementById('successPopup');
+    const timer = document.getElementById('successCountdown');
+    let count = 5;
+    popup.classList.add('open');
+    successCountdownInterval = setInterval(() => {
+      count--;
+      timer.textContent = count;
+      if (count <= 0) closeSuccessPopup();
+    }, 1000);
+  }
+  document.getElementById('closeSuccessPopup').addEventListener('click', closeSuccessPopup);
 </script>
 
+<!-- Payment Success Popup -->
+<div class="modal-overlay" id="successPopup" style="z-index:200;">
+  <div class="modal" style="text-align:center; max-width:350px; position:relative;">
+    <button class="modal-close" id="closeSuccessPopup">&times;</button>
+    <div style="font-size:3.5rem; margin-bottom:16px;">🎉</div>
+    <h2 style="font-size:1.6rem; margin-bottom:12px;">Hurry!!!</h2>
+    <p style="font-size:1.1rem; color:var(--green); font-weight:700; margin-bottom:8px;">Welcome to DataFlow, Thanks for purchasing your data bundles from us.</p>
+    <p style="color:var(--text-dim); font-size:1.1rem; font-weight:700; margin-bottom:20px;">Your Data is on the way!</p>
+    <div style="display:flex; align-items:center; justify-content:center; gap:8px; color:var(--text-dim); font-size:0.85rem;">
+      <span>Closing in</span>
+      <span id="successCountdown" style="font-weight:700; color:var(--yellow-deep);">5</span>
+      <span>seconds...</span>
+    </div>
+  </div>
+</div>
 </body>
 </html>
