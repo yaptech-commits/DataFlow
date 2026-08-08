@@ -861,18 +861,52 @@ app.post('/api/purchase', purchaseLimiter, async (req, res) => {
       instructions: finalInstructions,
     });
   } catch (err) {
-    console.error('Payment error:', {
-      status: err.response?.status,
-      data: err.response?.data,
-      message: err.message,
-    });
-    const errorMsg = err.response?.data?.message || err.message || 'Could not start payment. Please try again.';
-    res.status(err.response?.status || 500).json({ error: errorMsg });
+    console.error('Paystack charge error:', err.response?.data || err.message);
   }
 });
 
-  /**
-   * Step 2: Frontend polls this every few seconds until status is no longer "pending".
+/**
+ * Step 1b: Submit OTP for Paystack charges that require it.
+ */
+app.post('/api/purchase/:reference/submit-otp', purchaseLimiter, async (req, res) => {
+  try {
+    const { reference } = req.params;
+    const { otp } = req.body;
+
+    if (!otp) return res.status(400).json({ error: 'Please enter the OTP code.' });
+
+    const record = db.getPurchase(reference);
+    if (!record) return res.status(404).json({ error: 'Purchase not found.' });
+
+    console.log(`Submitting OTP for reference ${reference}`);
+
+    const otpResponse = await axios.post(
+      `${PAYSTACK_BASE}/charge/submit_otp`,
+      { otp, reference },
+      { headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` } }
+    );
+
+    const { status, display_text } = otpResponse.data.data;
+    console.log('Paystack OTP response:', otpResponse.data);
+
+    if (status === 'success') {
+      db.setPurchaseStatus(reference, 'payment_success');
+      await deliverBundle(record, reference);
+      return res.json({ status: 'success', message: 'Payment confirmed! Delivering data...' });
+    } else if (status === 'pending' || status === 'processing') {
+      return res.json({ status: 'pending', message: display_text || 'Payment is processing...' });
+    } else {
+      return res.status(400).json({ error: display_text || 'OTP verification failed. Please try again.' });
+    }
+  } catch (err) {
+    console.error('OTP submission error:', err.response?.data || err.message);
+    const msg = err.response?.data?.data?.display_text || err.response?.data?.message || 'Could not verify OTP.';
+    res.status(400).json({ error: msg });
+  }
+});
+
+/**
+ * Step 2: Frontend polls this every few seconds until status is no longer "pending".
    * We also do a quick check against Paystack's API to see if the status has
    * changed, in case the webhook is delayed.
    */

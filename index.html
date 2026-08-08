@@ -703,6 +703,49 @@
 
   confirmPurchaseBtn.addEventListener('click', () => handleBuyClick());
 
+  submitOtpBtn.addEventListener('click', async () => {
+    const otp = otpInput.value.trim();
+    if (!otp) return setOtpStatus('Please enter the OTP code.', '#E4032E');
+    if (!currentPurchaseReference) return setOtpStatus('No active purchase found.', '#E4032E');
+
+    submitOtpBtn.disabled = true;
+    submitOtpBtn.textContent = 'Verifying...';
+    setOtpStatus('Verifying code...');
+    
+    try {
+      const res = await fetch(`${API_BASE}/api/purchase/${currentPurchaseReference}/submit-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ otp })
+      });
+      const data = await res.json();
+      
+      if (!res.ok) {
+        setOtpStatus(data.error || 'Verification failed.', '#E4032E');
+        submitOtpBtn.disabled = false;
+        submitOtpBtn.textContent = 'Verify';
+        return;
+      }
+      
+      setOtpStatus('Verified! Delivering data...', 'var(--green)');
+      submitOtpBtn.textContent = 'Verified ✓';
+      
+      setTimeout(() => {
+        otpSection.style.display = 'none';
+        showSuccessPopup();
+      }, 1500);
+    } catch(err) {
+      setOtpStatus('Error verifying OTP. Try again.', '#E4032E');
+      submitOtpBtn.disabled = false;
+      submitOtpBtn.textContent = 'Verify';
+    }
+  });
+
+  // Also allow pressing Enter in the OTP input
+  otpInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') submitOtpBtn.click();
+  });
+
   async function pollPurchase(reference, attempts = 0){
     if (attempts > 60) return;
     try {
@@ -710,11 +753,18 @@
       const data = await res.json();
       if (data.status === 'delivered'){
         setStatus(`✓ Delivered to ${data.phone}`, 'var(--green)');
+        otpSection.style.display = 'none';
         showSuccessPopup();
+      } else if (data.status === 'otp_required' || data.status === 'send_otp'){
+        setStatus('Please enter the OTP code sent to your phone.');
+        otpSection.style.display = 'flex';
+        otpInput.focus();
       } else if (data.status === 'failed'){
         setStatus('Payment failed. Please try again.', '#E4032E');
-      } else if (data.status === 'processing_delivery' || data.status === 'payment_ok_delivery_pending'){
+        otpSection.style.display = 'none';
+      } else if (data.status === 'processing_delivery' || data.status === 'payment_ok_delivery_pending' || data.status === 'payment_success'){
         setStatus('Payment confirmed — sending data...');
+        otpSection.style.display = 'none';
         showSuccessPopup();
       } else {
         setTimeout(() => pollPurchase(reference, attempts + 1), 3000);
@@ -742,13 +792,15 @@
         return;
       }
       currentPurchaseReference = data.reference;
-      setStatus('Check your phone to approve payment');
+      setStatus(data.instructions || 'Check your phone to approve payment');
       manualCheckBtn.style.display = 'block';
-      if (data.status === 'otp_required') {
+      
+      if (data.status === 'otp_required' || data.status === 'send_otp') {
         otpSection.style.display = 'flex';
         otpInput.focus();
+      } else {
+        pollPurchase(data.reference);
       }
-      pollPurchase(data.reference);
     } catch(err){
       confirmPurchaseBtn.disabled = false;
     }
