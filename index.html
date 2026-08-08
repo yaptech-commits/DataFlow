@@ -330,6 +330,27 @@
   </div>
 </section>
 
+<section class="wrap" id="check-status" style="padding-top: 40px; padding-bottom: 20px;">
+  <div style="background: var(--blue-soft); border: 1.5px solid rgba(59,111,224,0.2); border-radius: 20px; padding: 24px; box-shadow: 0 8px 20px rgba(0,0,0,0.05);">
+    <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 18px;">
+      <div style="width: 42px; height: 42px; background: var(--blue); color: #fff; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">🔍</div>
+      <div>
+        <h3 style="font-size: 1.15rem; font-weight: 700; margin: 0;">Check Order Status</h3>
+        <p style="font-size: 0.85rem; color: var(--text-dim); margin: 2px 0 0 0;">Enter your number to see the stage of your purchase.</p>
+      </div>
+    </div>
+    
+    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+      <input type="tel" id="statusPhone" placeholder="0XXXXXXXXX" maxlength="10" style="flex: 1; min-width: 200px; background: var(--bg); border: 1.5px solid var(--line); padding: 12px 16px; border-radius: 12px; font-size: 1rem; font-weight: 600;">
+      <button id="checkStatusBtn" class="btn-solid" style="width: auto; margin-top: 0; padding: 0 24px; background: var(--blue); color: #fff;">Check Now</button>
+    </div>
+    
+    <div id="statusResult" style="display: none; margin-top: 20px; border-top: 1px solid var(--line); padding-top: 20px;">
+      <!-- Results will be injected here -->
+    </div>
+  </div>
+</section>
+
 <section class="wrap" id="agent">
   <div class="section">
     <h2>Agent Partnership</h2>
@@ -854,6 +875,83 @@
     }, 1000);
   }
   document.getElementById('closeSuccessPopup').addEventListener('click', closeSuccessPopup);
+
+  // Order Status Checker Logic
+  const checkStatusBtn = document.getElementById('checkStatusBtn');
+  const statusPhoneInput = document.getElementById('statusPhone');
+  const statusResultDiv = document.getElementById('statusResult');
+
+  checkStatusBtn.addEventListener('click', async () => {
+    const phone = statusPhoneInput.value.trim();
+    if (!/^0\d{9}$/.test(phone)) {
+      showToast('Enter a valid 10-digit number.', 'error');
+      return;
+    }
+
+    checkStatusBtn.disabled = true;
+    checkStatusBtn.textContent = 'Checking...';
+    statusResultDiv.style.display = 'none';
+
+    try {
+      const res = await fetch(`${API_BASE}/api/purchases/status/${phone}`);
+      const data = await res.json();
+
+      if (!res.ok) {
+        statusResultDiv.innerHTML = `<p style="color: var(--red); font-size: 0.9rem; text-align: center;">${data.error || 'No orders found.'}</p>`;
+        statusResultDiv.style.display = 'block';
+        return;
+      }
+
+      const purchases = data.purchases;
+      let html = '<h4 style="font-size: 0.9rem; font-weight: 700; margin-bottom: 12px;">Recent Orders</h4>';
+      
+      purchases.forEach(p => {
+        let statusColor = 'var(--text-dim)';
+        let statusText = p.status;
+        let statusIcon = '⏳';
+
+        if (p.status === 'delivered') {
+          statusColor = 'var(--green)';
+          statusText = 'Delivered';
+          statusIcon = '✅';
+        } else if (p.status === 'failed') {
+          statusColor = 'var(--red)';
+          statusText = 'Failed';
+          statusIcon = '❌';
+        } else if (p.status.includes('delivery') || p.status === 'payment_success') {
+          statusColor = 'var(--yellow-deep)';
+          statusText = 'Processing Delivery';
+          statusIcon = '🚚';
+        } else if (p.status === 'pending' || p.status === 'otp_required' || p.status === 'send_otp') {
+          statusColor = 'var(--blue)';
+          statusText = 'Awaiting Payment';
+          statusIcon = '💳';
+        }
+
+        html += `
+          <div style="background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div style="font-size: 0.85rem; font-weight: 700;">${p.capacity} ${p.network}</div>
+              <div style="font-size: 0.75rem; color: var(--text-dim);">${new Date(p.createdAt).toLocaleDateString()} ${new Date(p.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-size: 0.85rem; font-weight: 700; color: ${statusColor};">${statusIcon} ${statusText}</div>
+              <div style="font-size: 0.75rem; color: var(--text-dim);">Ref: ${p.reference.slice(0, 8)}...</div>
+            </div>
+          </div>
+        `;
+      });
+
+      statusResultDiv.innerHTML = html;
+      statusResultDiv.style.display = 'block';
+    } catch (err) {
+      statusResultDiv.innerHTML = `<p style="color: var(--red); font-size: 0.9rem; text-align: center;">Could not reach server. Try again.</p>`;
+      statusResultDiv.style.display = 'block';
+    } finally {
+      checkStatusBtn.disabled = false;
+      checkStatusBtn.textContent = 'Check Now';
+    }
+  });
 </script>
 
 <!-- Payment Success Popup -->

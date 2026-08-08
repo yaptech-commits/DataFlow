@@ -910,7 +910,51 @@ app.post('/api/purchase/:reference/submit-otp', purchaseLimiter, async (req, res
    * We also do a quick check against Paystack's API to see if the status has
    * changed, in case the webhook is delayed.
    */
-  app.get('/api/purchase/:reference', async (req, res) => {
+  /**
+ * NEW: Look up purchase status by phone number.
+ */
+app.get('/api/purchases/status/:phone', async (req, res) => {
+  const { phone } = req.params;
+  if (!phone || !/^0\d{9}$/.test(phone)) {
+    return res.status(400).json({ error: 'Enter a valid 10-digit Ghana number starting with 0' });
+  }
+
+  try {
+    const records = db.getPurchasesByPhone(phone);
+    if (!records || records.length === 0) {
+      return res.status(404).json({ error: 'No orders found for this phone number.' });
+    }
+    
+    // For each record, if it's still pending, try a quick verify with Paystack
+    const updatedRecords = await Promise.all(records.map(async (record) => {
+      if (record.status === 'pending') {
+        try {
+          const { data } = await axios.get(`${PAYSTACK_BASE}/transaction/verify/${record.reference}`, {
+            headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` }
+          });
+          if (data.data.status === 'success') {
+            db.setPurchaseStatus(record.reference, 'processing_delivery');
+            const updated = db.getPurchase(record.reference);
+            await deliverBundle(updated, record.reference);
+            return updated;
+          } else if (data.data.status === 'failed') {
+            db.setPurchaseStatus(record.reference, 'failed');
+            return db.getPurchase(record.reference);
+          }
+        } catch (e) {
+          // ignore verification error
+        }
+      }
+      return record;
+    }));
+
+    res.json({ purchases: updatedRecords });
+  } catch (err) {
+    res.status(500).json({ error: 'Could not check status. Please try again.' });
+  }
+});
+
+app.get('/api/purchase/:reference', async (req, res) => {
     const reference = req.params.reference;
     let record = db.getPurchase(reference);
     if (!record) return res.status(404).json({ error: 'Unknown reference' });

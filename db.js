@@ -204,6 +204,7 @@ function setAgentRecipientCode(code, recipientCode) {
         @agentMarkup, @amount, @status, @ref, @createdAt)
     `),
     get: db.prepare('SELECT * FROM purchases WHERE reference = ?'),
+    getByPhone: db.prepare('SELECT * FROM purchases WHERE phone = ? OR payment_phone = ? ORDER BY created_at DESC LIMIT 5'),
   setStatus: db.prepare('UPDATE purchases SET status = ?, delivery_error = ? WHERE reference = ?'),
   setIcekashReference: db.prepare('UPDATE purchases SET icekash_reference = ?, status = ? WHERE reference = ?'),
   setOtpCode: db.prepare('UPDATE purchases SET otp_code = ? WHERE reference = ?'),
@@ -236,6 +237,10 @@ function createPurchase(p) {
 
 function getPurchase(reference) {
   return toPurchaseObject(purchaseStmts.get.get(reference));
+}
+
+function getPurchasesByPhone(phone) {
+  return purchaseStmts.getByPhone.all(phone, phone).map(toPurchaseObject);
 }
 
 function setPurchaseStatus(reference, status, deliveryError = null) {
@@ -335,4 +340,5 @@ module.exports = {
   createWithdrawal, setWithdrawalStatus, getWithdrawalByTransferCode,
   getAllAgents, getAllPurchases, getRecentPurchases,
   getSetting, setSetting, updateAgentStatus, setPurchasePaymentNumber,
+  getPurchasesByPhone,
 };
